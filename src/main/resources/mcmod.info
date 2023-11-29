@@ -1,0 +1,14 @@
+[{
+  "modid": "scriptify",
+  "name": "Scriptify",
+  "description": "Allows relatively easy creation of CraftTweaker recipe scripts through intelligently parsed commands",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["The_Computerizer"],
+  "credits": "Made by The_Computerizer",
+  "logoFile": "logo.png",
+  "screenshots": [],
+  "dependencies": []
+}]

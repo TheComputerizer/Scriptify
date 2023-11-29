@@ -1,0 +1,109 @@
+plugins {
+    id 'net.minecraftforge.gradle' version '6.0.+'
+    id 'wtf.gofancy.fancygradle' version '1.1.+'
+}
+
+fancyGradle {
+    patches {
+        resources
+        coremods
+        codeChickenLib
+        asm
+        mergetool
+    }
+}
+
+version = "${project.minecraft_version}-${project.mod_version}"
+group = project.maven_group
+archivesBaseName = project.base_name
+
+java.toolchain.getLanguageVersion().set(JavaLanguageVersion.of(8))
+
+minecraft {
+    mappings channel: 'stable', version: mappings_version
+    accessTransformer = file('src/main/resources/META-INF/scriptify_at.cfg')
+    runs {
+        def args = [
+                '-Dmixin.debug.export=true',
+                '-Dmixin.hotSwap=true',
+                '-Dmixin.checks.interfaces=true'
+        ]
+        client {
+            workingDirectory file('run')
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+            jvmArgs args
+        }
+
+        server {
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+            jvmArgs args
+        }
+    }
+}
+
+repositories {
+    maven {
+        name = 'CleanRoom'
+        url = uri('https://maven.cleanroommc.com')
+    }
+    maven {
+        name = 'CurseForge'
+        url = uri('https://www.cursemaven.com')
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
+}
+
+dependencies {
+    minecraft("net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
+
+    //annotation processors
+    annotationProcessor("org.ow2.asm:asm-debug-all:${project.asm_debug_annotation}")
+    annotationProcessor("com.google.guava:guava:${project.guava_annotation}")
+    annotationProcessor("com.google.code.gson:gson:${project.gson_annotation}")
+    annotationProcessor("zone.rong:mixinbooter:${project.mixinbooter_version}") {
+        transitive = false
+    }
+
+    //implemented stuff
+    implementation("zone.rong:mixinbooter:${project.mixinbooter_version}") {
+        transitive = false
+    }
+    implementation(fg.deobf("curse.maven:the-impossible-library-661115:${project.til_version}"))
+
+    //runtime stuff and libraries
+    runtimeOnly(fg.deobf("curse.maven:brandons-core-231382:${project.bc_version}"))
+    runtimeOnly(fg.deobf("curse.maven:bookshelf-228525:${project.bookshelf_version}"))
+    runtimeOnly(fg.deobf("curse.maven:caliper-266824:${project.caliper_version}"))
+    runtimeOnly(fg.deobf("curse.maven:codechicken-lib-242818:${project.ccl_version}"))
+    runtimeOnly(fg.deobf("curse.maven:had-enough-items-557549:${project.hei_version}"))
+    runtimeOnly(fg.deobf("curse.maven:redstone-flux-270789:${project.rf_version}"))
+    runtimeOnly(fg.deobf("curse.maven:the-one-probe-245211:${project.top_version}"))
+}
+
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    inputs.property "version", project.version
+    inputs.property "mcversion", minecraft_version
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.version, 'mcversion': minecraft_version
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+jar {
+    manifest {
+        attributes([
+                /*'FMLCorePlugin': 'mods.thecomputerizer.scriptify.core.EarlyMixinPlugin',
+                'FMLCorePluginContainsFMLMod': true,
+                'ForceLoadAsMod': true,*/
+                'FMLAT': 'scriptify_at.cfg'
+        ])
+    }
+}

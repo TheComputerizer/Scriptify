@@ -1,0 +1,5 @@
+commands.scriptify.unknown=Unknown subcommand %1$s
+commands.scriptify.usage=Valid subcommands %1$s
+
+parameters.scriptify.array=Failed to parse `%1$s` as an array for parameter `%2$s`!
+parameters.scriptify.number=Failed to parse `%1$s` as a number for parameter `%2$s`!
