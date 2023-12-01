@@ -18,8 +18,9 @@ public abstract class AbstractCommand {
 
     protected final Collection<ISubType<?>> subTypes;
 
-    protected AbstractCommand(ISubType<?> ... subTypes) {
-        this.subTypes = Arrays.asList(subTypes);
+    protected AbstractCommand(ISubType.Type ... subTypes) {
+        this.subTypes = new ArrayList<>();
+        for(ISubType.Type type : subTypes) this.subTypes.add(type.make());
     }
 
     protected String[] array(String ... args) {

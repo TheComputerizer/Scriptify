@@ -17,11 +17,11 @@ import java.util.Objects;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class ScriptifyCommand extends AbstractCommand implements ICommand {
+public class ScriptifyCommands extends AbstractCommand implements ICommand {
 
     private SubCmd nextSubCmd;
-    public ScriptifyCommand() {
-        super(SubCmd.Type.COMMANDS.make(), SubCmd.Type.RECIPE.make());
+    public ScriptifyCommands() {
+        super(ISubType.Type.COMMAND_HELP,ISubType.Type.COMMAND_RECIPE);
     }
 
     @Override
@@ -36,7 +36,7 @@ public class ScriptifyCommand extends AbstractCommand implements ICommand {
 
     @Override
     public List<String> getAliases() {
-        return Collections.singletonList(ScriptifyRef.MODID);
+        return Collections.emptyList();
     }
 
     @Override
@@ -50,7 +50,7 @@ public class ScriptifyCommand extends AbstractCommand implements ICommand {
 
     @Override
     public boolean checkPermission(MinecraftServer server, ICommandSender sender) {
-        return false;
+        return sender.canUseCommand(4,this.getName());
     }
 
     @Override

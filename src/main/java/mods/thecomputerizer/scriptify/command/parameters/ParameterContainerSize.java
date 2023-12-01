@@ -3,14 +3,15 @@ package mods.thecomputerizer.scriptify.command.parameters;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Tuple;
 
 import java.util.Collections;
 import java.util.List;
 
-public class ParameterTotalSlots extends Parameter<Integer> {
+public class ParameterContainerSize extends Parameter<Tuple<Integer,Integer>> {
 
-    public ParameterTotalSlots() {
-        super(Type.PARAMETER_TOTAL_SLOTS);
+    public ParameterContainerSize() {
+        super(Type.PARAMETER_CONTAINER_SIZE);
     }
 
     @Override
@@ -24,7 +25,7 @@ public class ParameterTotalSlots extends Parameter<Integer> {
     }
 
     @Override
-    protected Integer parse(MinecraftServer server, ICommandSender sender, String valueStr) throws CommandException {
-        return Parser.parseInt(this,valueStr);
+    protected Tuple<Integer,Integer> parse(MinecraftServer server, ICommandSender sender, String valueStr) throws CommandException {
+        return Parser.parseIntegerPair(this,valueStr);
     }
 }

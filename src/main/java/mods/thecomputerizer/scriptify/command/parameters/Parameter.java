@@ -1,16 +1,23 @@
 package mods.thecomputerizer.scriptify.command.parameters;
 
+import io.netty.buffer.ByteBuf;
 import mods.thecomputerizer.scriptify.Scriptify;
+import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.ISubType;
+import mods.thecomputerizer.theimpossiblelibrary.util.NetworkUtil;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Objects;
 
 public abstract class Parameter<T> implements ISubType<T> {
+
+    public static Parameter<?> read(ByteBuf buf) {
+        Parameter<?> parameter = (Parameter<?>)Type.getParameter(NetworkUtil.readString(buf)).make();
+        parameter.valueStr = NetworkUtil.readString(buf);
+        return parameter;
+    }
 
     private final Type type;
     protected String valueStr;
@@ -31,6 +38,7 @@ public abstract class Parameter<T> implements ISubType<T> {
 
     @Override
     public T execute(MinecraftServer server, ICommandSender sender) throws CommandException {
+        if(Objects.isNull(this.valueStr)) this.valueStr = this.type.getDefault();
         return parse(server,sender,this.valueStr);
     }
 
@@ -78,36 +86,11 @@ public abstract class Parameter<T> implements ISubType<T> {
 
     protected abstract T parse(MinecraftServer server, ICommandSender sender, String valueStr) throws CommandException;
 
-    public enum Type {
-
-        NAME("name", ParameterName::new),
-        TOTAL_SLOTS("totalSlots", ParameterTotalSlots::new);
-
-        private static final Map<String,Type> BY_NAME = new HashMap<>();
-
-        public static Type get(String name) {
-            return BY_NAME.getOrDefault(name,TOTAL_SLOTS);
-        }
-
-        public final String name;
-        private final Supplier<Parameter<?>> parameterSupplier;
-
-        Type(String name, Supplier<Parameter<?>> parameterSupplier) {
-            this.name = name;
-            this.parameterSupplier = parameterSupplier;
-        }
-
-        @Override
-        public String toString() {
-            return this.name;
-        }
-
-        public Parameter<?> make() {
-            return this.parameterSupplier.get();
-        }
-
-        static {
-            for(Type type : values()) BY_NAME.put(type.name,type);
-        }
+    @Override
+    public void send(ByteBuf buf) {
+        NetworkUtil.writeString(buf,this.getName());
+        if(Objects.isNull(this.valueStr) || this.valueStr.isEmpty()) this.valueStr = getType().getDefault();
+        ScriptifyRef.LOGGER.error("SENDING PARAMETER {} WITH VALUE {}",this.getName(),this.valueStr);
+        NetworkUtil.writeString(buf,this.valueStr);
     }
 }

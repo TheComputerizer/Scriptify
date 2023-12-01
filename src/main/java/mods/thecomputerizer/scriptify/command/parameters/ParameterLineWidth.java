@@ -4,18 +4,17 @@ import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
 
-import java.util.Collections;
 import java.util.List;
 
-public class ParameterTotalSlots extends Parameter<Integer> {
+public class ParameterLineWidth extends Parameter<Integer> {
 
-    public ParameterTotalSlots() {
-        super(Type.PARAMETER_TOTAL_SLOTS);
+    public ParameterLineWidth() {
+        super(Type.PARAMETER_MAX_LINE_WIDTH);
     }
 
     @Override
     public List<String> getTabCompletions(String... args) {
-        return Collections.emptyList();
+        return null;
     }
 
     @Override

@@ -6,9 +6,9 @@ import net.minecraft.server.MinecraftServer;
 import java.util.Collections;
 import java.util.List;
 
-public class ParameterName extends Parameter<String> {
-    public ParameterName() {
-        super(Type.PARAMETER_NAME);
+public class ParameterZenFileOutput extends Parameter<String> {
+    public ParameterZenFileOutput() {
+        super(Type.PARAMETER_ZEN_FILE_OUTPUT);
     }
 
     @Override

@@ -1,34 +1,37 @@
 package mods.thecomputerizer.scriptify.command.subcmd;
 
+import io.netty.buffer.ByteBuf;
 import mods.thecomputerizer.scriptify.Scriptify;
+import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.AbstractCommand;
 import mods.thecomputerizer.scriptify.command.ISubType;
 import mods.thecomputerizer.scriptify.command.parameters.Parameter;
-import mods.thecomputerizer.scriptify.command.subcmd.help.SubCmdCommands;
-import mods.thecomputerizer.scriptify.command.subcmd.help.SubCmdHelp;
-import mods.thecomputerizer.scriptify.command.subcmd.help.SubCmdParameters;
-import mods.thecomputerizer.scriptify.command.subcmd.recipes.SubCmdCustom;
-import mods.thecomputerizer.scriptify.command.subcmd.recipes.SubCmdRecipe;
-import mods.thecomputerizer.scriptify.command.subcmd.recipes.SubCmdShaped;
-import mods.thecomputerizer.scriptify.command.subcmd.recipes.SubCmdShapeless;
+import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
+import mods.thecomputerizer.theimpossiblelibrary.util.NetworkUtil;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.function.Supplier;
 
 public abstract class SubCmd extends AbstractCommand implements ISubType<AbstractCommand> {
 
+    public static SubCmd buildFromPacket(ByteBuf buf) {
+        SubCmd sub = (SubCmd)Type.getSubCmd(NetworkUtil.readString(buf)).make();
+        sub.parameters = NetworkUtil.readGenericMap(buf,NetworkUtil::readString,Parameter::read);
+        return sub;
+    }
+
     private final Type type;
     private SubCmd nextSubCmd;
-    protected List<Parameter<?>> parameters;
+    private Map<String,Parameter<?>> parameters;
 
-    public SubCmd(Type type, ISubType<?> ... subTypes) {
+    public SubCmd(Type type, Type ... subTypes) {
         super(subTypes);
         this.type = type;
-        this.parameters = new ArrayList<>();
+        this.parameters = new HashMap<>();
     }
 
     public Type getType() {
@@ -44,14 +47,14 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
             else throwGeneric(array("unknown"), args[0]);
         }
         for(String arg : args) {
-            Parameter<?> parameter = getParameter(arg);
+            Parameter<?> parameter = collectParameter(arg);
             if(Objects.nonNull(parameter))
-                this.parameters.add((Parameter<?>)parameter.collect(arg));
+                this.parameters.put(parameter.getName(),(Parameter<?>)parameter.collect(arg));
         }
         return this;
     }
 
-    protected Parameter<?> getParameter(@Nullable String arg) throws CommandException {
+    protected Parameter<?> collectParameter(@Nullable String arg) throws CommandException {
         if(Objects.isNull(arg) || arg.isEmpty()) throwGeneric(array("unknown"),arg);
         else
             for(ISubType<?> sub : this.subTypes)
@@ -67,10 +70,27 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
         return this;
     }
 
+    protected abstract void executeOnPacket(MinecraftServer server, @Nullable EntityPlayerMP player, PacketSendContainerInfo packet);
+
+
     @Override
     public String getName() {
         return this.type.name;
     }
+
+    protected Parameter<?> getParameter(String name) {
+        Parameter<?> parameter = this.parameters.get(name);
+        if(Objects.isNull(parameter)) {
+            try {
+                parameter = collectParameter(name);
+            } catch (CommandException ignored) {}
+        }
+        if(Objects.isNull(parameter))
+            ScriptifyRef.LOGGER.error("Unable to get unknown parameter `{}` for sub command `{}`!",
+                    name,getName());
+        return parameter;
+    }
+
 
     @Override
     public List<String> getTabCompletions(String ... args) {
@@ -79,6 +99,16 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
         SubCmd sub = getSubCommand(args[0]);
         return Objects.nonNull(sub) ? sub.getTabCompletions(Arrays.copyOfRange(args,1,args.length)) :
                 Collections.emptyList();
+    }
+
+    public void handlePacket(PacketSendContainerInfo packet, EntityPlayerMP player) {
+        executeOnPacket(player.getServer(),player,packet);
+    }
+
+    @Override
+    public void send(ByteBuf buf) {
+        NetworkUtil.writeString(buf,this.getName());
+        NetworkUtil.writeGenericMap(buf,this.parameters,NetworkUtil::writeString,(buf1,p) -> p.send(buf1));
     }
 
     @Override
@@ -96,43 +126,5 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
     @Override
     public String toString() {
         return this.type.toString();
-    }
-
-    public enum Type {
-
-        COMMANDS("commands", SubCmdCommands::new),
-        CUSTOM("custom", SubCmdCustom::new),
-        HELP("help", SubCmdHelp::new),
-        PARAMETERS("parameters", SubCmdParameters::new),
-        RECIPE("recipe", SubCmdRecipe::new),
-        SHAPED("shaped", SubCmdShaped::new),
-        SHAPELESS("shapeless", SubCmdShapeless::new);
-
-        private static final Map<String, Type> BY_NAME = new HashMap<>();
-
-        public static Type get(String name) {
-            return BY_NAME.getOrDefault(name,HELP);
-        }
-
-        public final String name;
-        private final Supplier<SubCmd> cmdSupplier;
-
-        Type(String name, Supplier<SubCmd> cmdSupplier) {
-            this.name = name;
-            this.cmdSupplier = cmdSupplier;
-        }
-
-        @Override
-        public String toString() {
-            return this.name;
-        }
-
-        public SubCmd make() {
-            return this.cmdSupplier.get();
-        }
-
-        static {
-            for(Type type : values()) BY_NAME.put(type.name,type);
-        }
     }
 }

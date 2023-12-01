@@ -1,6 +1,9 @@
 package mods.thecomputerizer.scriptify;
 
-import mods.thecomputerizer.scriptify.registry.RegistryHandler;
+import mods.thecomputerizer.scriptify.command.ScriptifyCommands;
+import mods.thecomputerizer.scriptify.network.PacketQueryContainer;
+import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
+import mods.thecomputerizer.theimpossiblelibrary.network.NetworkHandler;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.Mod;
@@ -15,6 +18,11 @@ import java.util.Objects;
         dependencies = ScriptifyRef.DEPENDENCIES)
 public class Scriptify {
 
+    public Scriptify() {
+        NetworkHandler.queueClientPacketRegister(PacketQueryContainer.class);
+        NetworkHandler.queueServerPacketRegister(PacketSendContainerInfo.class);
+    }
+
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {}
 
@@ -23,7 +31,7 @@ public class Scriptify {
 
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
-        RegistryHandler.onServerStarting(event);
+        event.registerServerCommand(new ScriptifyCommands());
     }
 
     public static File getConfigFile(String path) {

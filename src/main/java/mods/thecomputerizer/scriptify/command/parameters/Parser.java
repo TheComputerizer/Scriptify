@@ -1,6 +1,7 @@
 package mods.thecomputerizer.scriptify.command.parameters;
 
 import net.minecraft.command.CommandException;
+import net.minecraft.util.Tuple;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,24 +40,46 @@ public class Parser {
         }
     }
 
-    public static double[] parseDoubleArray(Parameter<?> parameter, String val) throws CommandException {
+    public static Tuple<Double,Double> parseDoublePair(Parameter<?> parameter, String val) throws CommandException {
+        val = val.trim().toLowerCase();
+        String splitBy = val.contains("x") ? "x" : "*";
+        String[] split = val.split(splitBy);
+        if(split.length==1) {
+            double parsed = parseDouble(parameter,split[0]);
+            return new Tuple<>(parsed,parsed);
+        }
+        return new Tuple<>(parseDouble(parameter,split[0]),parseDouble(parameter,split[1]));
+    }
+
+    public static Tuple<Integer,Integer> parseIntegerPair(Parameter<?> parameter, String val) throws CommandException {
+        val = val.trim().toLowerCase();
+        String splitBy = val.contains("x") ? "x" : "*";
+        String[] split = val.split(splitBy);
+        if(split.length==1) {
+            int parsed = parseInt(parameter,split[0]);
+            return new Tuple<>(parsed,parsed);
+        }
+        return new Tuple<>(parseInt(parameter,split[0]),parseInt(parameter,split[1]));
+    }
+
+    public static Double[] parseDoubleArray(Parameter<?> parameter, String val) throws CommandException {
         if(!val.startsWith("[") || !val.endsWith("]")) parameter.throwGeneric("array",parameter.getName(),val);
         String trimmed = val.trim().substring(1);
         trimmed = trimmed.substring(0,trimmed.length()-1);
         String[] split = trimmed.split(",");
-        if(split.length==0) return new double[0];
-        double[] ret = new double[split.length];
+        if(split.length==0) return new Double[0];
+        Double[] ret = new Double[split.length];
         for(int i=0; i<ret.length; i++) ret[i] = parseDouble(parameter,split[i]);
         return ret;
     }
 
-    public static int[] parseIntArray(Parameter<?> parameter, String val) throws CommandException {
+    public static Integer[] parseIntArray(Parameter<?> parameter, String val) throws CommandException {
         if(!val.startsWith("[") || !val.endsWith("]")) parameter.throwGeneric("array",parameter.getName(),val);
         String trimmed = val.trim().substring(1);
         trimmed = trimmed.substring(0,trimmed.length()-1);
         String[] split = trimmed.split(",");
-        if(split.length==0) return new int[0];
-        int[] ret = new int[split.length];
+        if(split.length==0) return new Integer[0];
+        Integer[] ret = new Integer[split.length];
         for(int i=0; i<ret.length; i++) ret[i] = parseInt(parameter,split[i]);
         return ret;
     }

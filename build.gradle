@@ -45,6 +45,10 @@ minecraft {
 
 repositories {
     maven {
+        name = 'BlameJared Maven'
+        url = uri('https://maven.blamejared.com')
+    }
+    maven {
         name = 'CleanRoom'
         url = uri('https://maven.cleanroommc.com')
     }
@@ -69,9 +73,13 @@ dependencies {
     }
 
     //implemented stuff
-    implementation("zone.rong:mixinbooter:${project.mixinbooter_version}") {
+    implementation("zone.rong:mixinbooter:${project.mixinbooter_version}")
+    implementation("CraftTweaker2:CraftTweaker2-API:${project.ct_version}")
+    implementation("CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-${project.ct_version}")
+    implementation("CraftTweaker2:CraftTweaker2-MC1120-Mod-JEI:1.12-${project.ct_version}") {
         transitive = false
     }
+    implementation("CraftTweaker2:ZenScript:${project.ct_version}")
     implementation(fg.deobf("curse.maven:the-impossible-library-661115:${project.til_version}"))
 
     //runtime stuff and libraries
@@ -80,8 +88,12 @@ dependencies {
     runtimeOnly(fg.deobf("curse.maven:caliper-266824:${project.caliper_version}"))
     runtimeOnly(fg.deobf("curse.maven:codechicken-lib-242818:${project.ccl_version}"))
     runtimeOnly(fg.deobf("curse.maven:had-enough-items-557549:${project.hei_version}"))
+    runtimeOnly(fg.deobf("curse.maven:modtweaker-220954:${project.modtweaker_version}"))
+    runtimeOnly(fg.deobf("curse.maven:mtlib-253211:${project.mtlib_version}"))
     runtimeOnly(fg.deobf("curse.maven:redstone-flux-270789:${project.rf_version}"))
     runtimeOnly(fg.deobf("curse.maven:the-one-probe-245211:${project.top_version}"))
+    runtimeOnly(fg.deobf("curse.maven:zenrecipereload-911152:${project.zenrr_version}"))
+    runtimeOnly(fg.deobf("curse.maven:zenutil-401178:${project.zenutils_version}"))
 }
 
 processResources {
