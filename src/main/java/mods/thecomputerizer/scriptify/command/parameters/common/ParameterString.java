@@ -1,15 +1,16 @@
-package mods.thecomputerizer.scriptify.command.parameters;
+package mods.thecomputerizer.scriptify.command.parameters.common;
 
+import mods.thecomputerizer.scriptify.command.parameters.Parameter;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
 
 import java.util.Collections;
 import java.util.List;
 
-public class ParameterContainerType extends Parameter<String> {
+public class ParameterString extends Parameter<String> {
 
-    public ParameterContainerType() {
-        super(Type.PARAMETER_CONTAINER_TYPE);
+    public ParameterString(Type type) {
+        super(type);
     }
 
     @Override

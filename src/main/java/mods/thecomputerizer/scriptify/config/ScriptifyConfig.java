@@ -23,4 +23,12 @@ public class ScriptifyConfig {
         @LangKey("config."+ScriptifyRef.MODID+".commands.defaultParameterValues")
         public String[] defaultParameterValues = ISubType.Type.getDefaultsParameters();
     }
+
+    public static class Parameters {
+
+        @Name("parameterSets")
+        @Comment("Specify files t")
+        @LangKey("config."+ScriptifyRef.MODID+".commands.defaultParameterValues")
+        public String[] defaultParameterValues = ISubType.Type.getDefaultsParameters();
+    }
 }

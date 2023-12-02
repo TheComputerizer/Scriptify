@@ -1,7 +1,8 @@
 package mods.thecomputerizer.scriptify.command.parameters;
 
 import net.minecraft.command.CommandException;
-import net.minecraft.util.Tuple;
+import net.minecraft.command.ICommandSender;
+import net.minecraft.server.MinecraftServer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,79 +41,14 @@ public class Parser {
         }
     }
 
-    public static Tuple<Double,Double> parseDoublePair(Parameter<?> parameter, String val) throws CommandException {
-        val = val.trim().toLowerCase();
-        String splitBy = val.contains("x") ? "x" : "*";
-        String[] split = val.split(splitBy);
-        if(split.length==1) {
-            double parsed = parseDouble(parameter,split[0]);
-            return new Tuple<>(parsed,parsed);
-        }
-        return new Tuple<>(parseDouble(parameter,split[0]),parseDouble(parameter,split[1]));
-    }
-
-    public static Tuple<Integer,Integer> parseIntegerPair(Parameter<?> parameter, String val) throws CommandException {
-        val = val.trim().toLowerCase();
-        String splitBy = val.contains("x") ? "x" : "*";
-        String[] split = val.split(splitBy);
-        if(split.length==1) {
-            int parsed = parseInt(parameter,split[0]);
-            return new Tuple<>(parsed,parsed);
-        }
-        return new Tuple<>(parseInt(parameter,split[0]),parseInt(parameter,split[1]));
-    }
-
-    public static Double[] parseDoubleArray(Parameter<?> parameter, String val) throws CommandException {
+    public static <T> List<T> parseArray(MinecraftServer server, ICommandSender sender, Parameter<T> parameter,
+                                         String val) throws CommandException {
         if(!val.startsWith("[") || !val.endsWith("]")) parameter.throwGeneric("array",parameter.getName(),val);
         String trimmed = val.trim().substring(1);
         trimmed = trimmed.substring(0,trimmed.length()-1);
         String[] split = trimmed.split(",");
-        if(split.length==0) return new Double[0];
-        Double[] ret = new Double[split.length];
-        for(int i=0; i<ret.length; i++) ret[i] = parseDouble(parameter,split[i]);
-        return ret;
-    }
-
-    public static Integer[] parseIntArray(Parameter<?> parameter, String val) throws CommandException {
-        if(!val.startsWith("[") || !val.endsWith("]")) parameter.throwGeneric("array",parameter.getName(),val);
-        String trimmed = val.trim().substring(1);
-        trimmed = trimmed.substring(0,trimmed.length()-1);
-        String[] split = trimmed.split(",");
-        if(split.length==0) return new Integer[0];
-        Integer[] ret = new Integer[split.length];
-        for(int i=0; i<ret.length; i++) ret[i] = parseInt(parameter,split[i]);
-        return ret;
-    }
-
-    public static String[] parseStringArray(Parameter<?> parameter, String val) throws CommandException {
-        if(!val.startsWith("[") || !val.endsWith("]")) parameter.throwGeneric("array",parameter.getName(),val);
-        String trimmed = val.trim().substring(1);
-        trimmed = trimmed.substring(0,trimmed.length()-1);
-        if(trimmed.isEmpty()) return new String[0];
-        if(!trimmed.contains("\"")) return trimmed.split(",");
-        List<Integer> indices = new ArrayList<>();
-        indices.add(0);
-        indices = findCommaIndices(indices,trimmed,0,0,false);
-        if(indices.size()==1) return new String[]{trimmed};
-        List<String> ret = new ArrayList<>();
-        for(int i=0; i<indices.size(); i++) {
-            if(i+1==indices.size()-1) ret.add(trimmed.substring(indices.get(i)));
-            else ret.add(trimmed.substring(indices.get(i),indices.get(i+1)-1));
-        }
-        return ret.toArray(new String[0]);
-    }
-
-    private static List<Integer> findCommaIndices(List<Integer> indices, String val, int index, int quoteCounter, boolean prevEsc) {
-        char c = val.charAt(0);
-        if(c=='"') {
-            quoteCounter = prevEsc ? quoteCounter : quoteCounter+1;
-            prevEsc = false;
-        } else if(c==',') {
-            if(quoteCounter%2==0) indices.add(index);
-            prevEsc = false;
-        }
-        else prevEsc = c == '\\';
-        index++;
-        return val.length()==1 ? indices : findCommaIndices(indices,val.substring(1),index,quoteCounter,prevEsc);
+        List<T> genericList = new ArrayList<>();
+        for(String element : split) genericList.add(parameter.execute(server,sender));
+        return genericList;
     }
 }

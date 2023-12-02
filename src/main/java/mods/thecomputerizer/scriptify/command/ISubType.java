@@ -2,7 +2,7 @@ package mods.thecomputerizer.scriptify.command;
 
 import io.netty.buffer.ByteBuf;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
-import mods.thecomputerizer.scriptify.command.parameters.*;
+import mods.thecomputerizer.scriptify.command.parameters.types.*;
 import mods.thecomputerizer.scriptify.command.subcmd.help.SubCmdCommands;
 import mods.thecomputerizer.scriptify.command.subcmd.help.SubCmdHelp;
 import mods.thecomputerizer.scriptify.command.subcmd.help.SubCmdParameters;
@@ -41,11 +41,13 @@ public interface ISubType<T> {
         COMMAND_SHAPED("shaped",SubCmdShaped::new),
         COMMAND_SHAPELESS("shapeless",SubCmdShapeless::new),
         PARAMETER_CONTAINER_TYPE("containerType","point", ParameterContainerType::new),
-        PARAMETER_CONTAINER_SIZE("containerSize","9x3",ParameterContainerSize::new),
-        PARAMETER_MAX_LINE_WIDTH("maxLineWidth","80",ParameterLineWidth::new),
-        PARAMETER_NAME("name","name",ParameterName::new),
-        PARAMETER_OREDICT("oreDict","[]",ParameterOreDict::new),
+        PARAMETER_CONTAINER_SIZE("containerSize","9x3", ParameterContainerSize::new),
+        PARAMETER_MAX_LINE_WIDTH("maxLineWidth","80", ParameterLineWidth::new),
+        PARAMETER_NAME("name","name", ParameterName::new),
+        PARAMETER_OREDICT("oreDict","[]", ParameterOreDict::new),
+        PARAMETER_PARAMETER_SET("parameterSet","default",ParameterParameterSet::new),
         PARAMETER_TOTAL_SLOTS("totalSlots","27",ParameterTotalSlots::new),
+        PARAMETER_TYPE("type","shaped",ParameterType::new),
         PARAMETER_ZEN_FILE_OUTPUT("zenFileOutput","config/"+ ScriptifyRef.NAME+"/outputs/output.zs",ParameterZenFileOutput::new);
 
         private static final Map<String, Type> PARAMETERS_BY_NAME = new HashMap<>();
