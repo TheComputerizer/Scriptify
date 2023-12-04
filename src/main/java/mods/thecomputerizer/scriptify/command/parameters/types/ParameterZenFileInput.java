@@ -2,9 +2,9 @@ package mods.thecomputerizer.scriptify.command.parameters.types;
 
 import mods.thecomputerizer.scriptify.command.parameters.common.ParameterString;
 
-public class ParameterParameterSet extends ParameterString {
+public class ParameterZenFileInput extends ParameterString {
 
-    public ParameterParameterSet() {
-        super(Type.PARAMETER_PARAMETER_SET);
+    public ParameterZenFileInput() {
+        super(Type.PARAMETER_ZEN_FILE_INPUT);
     }
 }

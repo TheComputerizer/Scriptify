@@ -1,6 +1,7 @@
 package mods.thecomputerizer.scriptify.command.subcmd;
 
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.AbstractCommand;
@@ -8,6 +9,7 @@ import mods.thecomputerizer.scriptify.command.ISubType;
 import mods.thecomputerizer.scriptify.command.parameters.Parameter;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
 import mods.thecomputerizer.theimpossiblelibrary.util.NetworkUtil;
+import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -24,18 +26,16 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
         return sub;
     }
 
-    private final Type type;
+
+    @Getter private final Type type;
     private SubCmd nextSubCmd;
     private Map<String,Parameter<?>> parameters;
+    protected Collection<String> parameterSets;
 
     public SubCmd(Type type, Type ... subTypes) {
         super(subTypes);
         this.type = type;
         this.parameters = new HashMap<>();
-    }
-
-    public Type getType() {
-        return this.type;
     }
 
     @Override
@@ -78,6 +78,22 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
         return this.type.name;
     }
 
+    @SuppressWarnings("unchecked")
+    protected void defineParameterSets(MinecraftServer server, ICommandSender sender) {
+        if(Objects.isNull(this.parameterSets)) {
+            Parameter<?> parameter = this.parameters.get("parameters");
+            if(Objects.isNull(parameter)) this.parameterSets = Collections.emptyList();
+            else {
+                try {
+                    this.parameterSets = (List<String>)parameter.execute(server,sender);
+                } catch(CommandException ex) {
+                    Scriptify.logError("Failed to parse parameter sets!",ex);
+                }
+            }
+        }
+        Scriptify.logInfo("Defined parameterSets `{}` for sub command {}", TextUtil.compileCollection(this.parameterSets),this.getName());
+    }
+
     protected Parameter<?> getParameter(String name) {
         Parameter<?> parameter = this.parameters.get(name);
         if(Objects.isNull(parameter)) {
@@ -88,6 +104,7 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
         if(Objects.isNull(parameter))
             ScriptifyRef.LOGGER.error("Unable to get unknown parameter `{}` for sub command `{}`!",
                     name,getName());
+        else parameter.setParameterSets(this.parameterSets);
         return parameter;
     }
 

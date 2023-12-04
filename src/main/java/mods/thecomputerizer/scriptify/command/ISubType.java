@@ -3,13 +3,9 @@ package mods.thecomputerizer.scriptify.command;
 import io.netty.buffer.ByteBuf;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.parameters.types.*;
-import mods.thecomputerizer.scriptify.command.subcmd.help.SubCmdCommands;
-import mods.thecomputerizer.scriptify.command.subcmd.help.SubCmdHelp;
-import mods.thecomputerizer.scriptify.command.subcmd.help.SubCmdParameters;
-import mods.thecomputerizer.scriptify.command.subcmd.recipes.SubCmdCustom;
-import mods.thecomputerizer.scriptify.command.subcmd.recipes.SubCmdRecipe;
-import mods.thecomputerizer.scriptify.command.subcmd.recipes.SubCmdShaped;
-import mods.thecomputerizer.scriptify.command.subcmd.recipes.SubCmdShapeless;
+import mods.thecomputerizer.scriptify.command.subcmd.SubCmdHelp;
+import mods.thecomputerizer.scriptify.command.subcmd.SubCmdRecipe;
+import mods.thecomputerizer.scriptify.command.subcmd.SubCmdTest;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
@@ -33,21 +29,18 @@ public interface ISubType<T> {
 
     enum Type {
 
-        COMMAND_COMMANDS("commands",SubCmdCommands::new),
-        COMMAND_CUSTOM("custom",SubCmdCustom::new),
         COMMAND_HELP("help",SubCmdHelp::new),
-        COMMAND_PARAMETERS("parameters",SubCmdParameters::new),
         COMMAND_RECIPE("recipe",SubCmdRecipe::new),
-        COMMAND_SHAPED("shaped",SubCmdShaped::new),
-        COMMAND_SHAPELESS("shapeless",SubCmdShapeless::new),
+        COMMAND_TEST("test",SubCmdTest::new),
         PARAMETER_CONTAINER_TYPE("containerType","point", ParameterContainerType::new),
         PARAMETER_CONTAINER_SIZE("containerSize","9x3", ParameterContainerSize::new),
         PARAMETER_MAX_LINE_WIDTH("maxLineWidth","80", ParameterLineWidth::new),
         PARAMETER_NAME("name","name", ParameterName::new),
         PARAMETER_OREDICT("oreDict","[]", ParameterOreDict::new),
-        PARAMETER_PARAMETER_SET("parameterSet","default",ParameterParameterSet::new),
+        PARAMETER_PARAMETERS("parameters","default", ParameterParameters::new),
         PARAMETER_TOTAL_SLOTS("totalSlots","27",ParameterTotalSlots::new),
         PARAMETER_TYPE("type","shaped",ParameterType::new),
+        PARAMETER_ZEN_FILE_INPUT("zenFileInput","scripts/"+ScriptifyRef.NAME+"/inputs/input.zs",ParameterZenFileInput::new),
         PARAMETER_ZEN_FILE_OUTPUT("zenFileOutput","config/"+ ScriptifyRef.NAME+"/outputs/output.zs",ParameterZenFileOutput::new);
 
         private static final Map<String, Type> PARAMETERS_BY_NAME = new HashMap<>();

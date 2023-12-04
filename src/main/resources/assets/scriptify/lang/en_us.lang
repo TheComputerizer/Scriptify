@@ -1,5 +1,18 @@
+commands.scriptify.recipe.fail=Failed to write recipe data with type `%1$s` to %2$s
+commands.scriptify.test.move.fail=Failed moved data from file %1$s to %2$s
+commands.scriptify.test.move.success=Successfully moved data from file %1$s to %2$s
+commands.scriptify.success=Successfully executed command %1$s
 commands.scriptify.unknown=Unknown subcommand %1$s
 commands.scriptify.usage=Valid subcommands %1$s
 
-parameters.scriptify.array=Failed to parse `%1$s` as an array for parameter `%2$s`!
-parameters.scriptify.number=Failed to parse `%1$s` as a number for parameter `%2$s`!
+config.scriptify.commands=Commands
+config.scriptify.commands.tooltip=Configurations regarding commands
+config.scriptify.parameters=Parameters
+config.scriptify.parameters.tooltip=Configurations regarding parameters
+config.scriptify.parameters.defaultParameterValues=Default Parameter Values
+config.scriptify.parameters.defaultParameterValues.tooltip=The default parameter values for parameters not directly specified in commands
+config.scriptify.parameters.parameters=Parameters
+config.scriptify.parameters.parameters.tooltip=Determines the file from which custom default parameter sets will be read from
+
+parameters.scriptify.array=Failed to parse `%1$s` as an array for parameter `%2$s`
+parameters.scriptify.number=Failed to parse `%1$s` as a number for parameter `%2$s`

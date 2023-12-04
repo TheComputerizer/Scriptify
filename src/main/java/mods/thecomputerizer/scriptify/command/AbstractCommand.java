@@ -4,6 +4,8 @@ import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.command.subcmd.SubCmd;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import net.minecraft.command.CommandException;
+import net.minecraft.command.ICommandSender;
+import net.minecraft.util.text.TextComponentTranslation;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -31,7 +33,10 @@ public abstract class AbstractCommand {
         List<String> validSubs = new ArrayList<>();
         for(ISubType<?> sub : this.subTypes) {
             String name = sub.getName();
-            if(arg.isEmpty() || name.startsWith(arg)) validSubs.add(name);
+            if(arg.isEmpty() || name.startsWith(arg)) {
+                if(sub instanceof SubCmd) validSubs.add(name);
+                else validSubs.add(name+"=");
+            }
         }
         return validSubs;
     }
@@ -56,6 +61,14 @@ public abstract class AbstractCommand {
 
     protected String[] nextArgs(String ... args) {
         return Arrays.copyOfRange(args,1,args.length);
+    }
+
+    protected void sendGeneric(ICommandSender sender, String[] args, Object ... parameters) {
+        sender.sendMessage(new TextComponentTranslation(lang(args),parameters));
+    }
+
+    protected void sendSuccess(ICommandSender sender, Object ... parameters) {
+        sendGeneric(sender,array("success"),parameters);
     }
 
     protected void throwGeneric(String[] args, Object ... parameters) throws CommandException {

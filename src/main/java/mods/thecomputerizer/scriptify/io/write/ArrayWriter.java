@@ -1,11 +1,11 @@
-package mods.thecomputerizer.scriptify.write;
+package mods.thecomputerizer.scriptify.io.write;
 
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 
 import java.util.Collections;
 import java.util.List;
 
-public class ArrayWriter<A extends IStringify<A>> extends UncommentedWriter<ArrayWriter<A>> {
+public class ArrayWriter<A extends IClampedStringWriter> extends CommentedWriter {
 
     private final A[] entries;
 
@@ -15,10 +15,7 @@ public class ArrayWriter<A extends IStringify<A>> extends UncommentedWriter<Arra
     }
 
     @Override
-    public void add(IStringify<?> other) {}
-
-    @Override
-    public List<String> stringify() {
+    public List<String> getClampedLines() {
         return Collections.singletonList(this.toString());
     }
 
@@ -26,7 +23,4 @@ public class ArrayWriter<A extends IStringify<A>> extends UncommentedWriter<Arra
     public String toString() {
         return "["+TextUtil.arrayToString(",",(Object[])this.entries)+"]";
     }
-
-    @Override
-    public void write(String filePath, boolean overwrite) {}
 }

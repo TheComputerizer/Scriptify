@@ -1,6 +1,7 @@
 plugins {
     id 'net.minecraftforge.gradle' version '6.0.+'
     id 'wtf.gofancy.fancygradle' version '1.1.+'
+    id 'org.spongepowered.mixin' version '0.7.+'
 }
 
 fancyGradle {
@@ -45,7 +46,7 @@ minecraft {
 
 repositories {
     maven {
-        name = 'BlameJared Maven'
+        name = 'BlameJared'
         url = uri('https://maven.blamejared.com')
     }
     maven {
@@ -62,15 +63,20 @@ repositories {
 }
 
 dependencies {
+    //minecraft
     minecraft("net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}")
 
     //annotation processors
-    annotationProcessor("org.ow2.asm:asm-debug-all:${project.asm_debug_annotation}")
-    annotationProcessor("com.google.guava:guava:${project.guava_annotation}")
     annotationProcessor("com.google.code.gson:gson:${project.gson_annotation}")
+    annotationProcessor("com.google.guava:guava:${project.guava_annotation}")
+    annotationProcessor("org.ow2.asm:asm-debug-all:${project.asm_debug_annotation}")
+    annotationProcessor("org.projectlombok:lombok:${project.lombok_version}")
     annotationProcessor("zone.rong:mixinbooter:${project.mixinbooter_version}") {
         transitive = false
     }
+
+    //compile only stuff
+    compileOnly("org.projectlombok:lombok:${project.lombok_version}")
 
     //implemented stuff
     implementation("zone.rong:mixinbooter:${project.mixinbooter_version}")
@@ -87,6 +93,8 @@ dependencies {
     runtimeOnly(fg.deobf("curse.maven:bookshelf-228525:${project.bookshelf_version}"))
     runtimeOnly(fg.deobf("curse.maven:caliper-266824:${project.caliper_version}"))
     runtimeOnly(fg.deobf("curse.maven:codechicken-lib-242818:${project.ccl_version}"))
+    runtimeOnly(fg.deobf("curse.maven:cucumber-272335:${project.cucumber_version}"))
+    runtimeOnly(fg.deobf("curse.maven:extended-crafting-nomifactory-edition-398267:${project.excrafting_version}"))
     runtimeOnly(fg.deobf("curse.maven:had-enough-items-557549:${project.hei_version}"))
     runtimeOnly(fg.deobf("curse.maven:modtweaker-220954:${project.modtweaker_version}"))
     runtimeOnly(fg.deobf("curse.maven:mtlib-253211:${project.mtlib_version}"))
@@ -107,6 +115,10 @@ processResources {
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
     }
+}
+
+mixin {
+    add sourceSets.main, "scriptify.refmap.json"
 }
 
 jar {

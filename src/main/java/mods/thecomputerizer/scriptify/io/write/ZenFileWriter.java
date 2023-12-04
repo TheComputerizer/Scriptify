@@ -1,32 +1,26 @@
-package mods.thecomputerizer.scriptify.write;
+package mods.thecomputerizer.scriptify.io.write;
 
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
-public class ZenFileWriter extends CommentedWriter<ZenFileWriter> {
+public class ZenFileWriter extends CommentedWriter {
 
     private List<String> preProcessors;
     private List<String> imports;
-    private final Set<IStringify<?>> entries;
+    private final Set<IClampedStringWriter> entries;
 
-    public ZenFileWriter(IStringify<?> ... entries) {
+    public ZenFileWriter(IClampedStringWriter ... entries) {
         this.preProcessors = new ArrayList<>();
         this.imports = new ArrayList<>();
         this.entries = new HashSet<>();
-        for(IStringify<?> entry : entries) this.add(entry);
+        this.entries.addAll(Arrays.asList(entries));
     }
 
-    public ZenFileWriter(Collection<IStringify<?>> entries) {
+    public ZenFileWriter(Collection<IClampedStringWriter> entries) {
         this.preProcessors = new ArrayList<>();
         this.imports = new ArrayList<>();
         this.entries = new HashSet<>(entries);
-    }
-
-    @Override
-    public void add(IStringify<?> other) {
-        this.entries.add(other);
     }
 
     public void addImport(String className) {
@@ -46,7 +40,7 @@ public class ZenFileWriter extends CommentedWriter<ZenFileWriter> {
     }
 
     @Override
-    public List<String> stringify() {
+    public List<String> getClampedLines() {
         List<String> entryStrings = new ArrayList<>();
         List<String> comments = getComments();
         if(!comments.isEmpty()) {
@@ -61,7 +55,7 @@ public class ZenFileWriter extends CommentedWriter<ZenFileWriter> {
             for(String className : this.imports) entryStrings.add("import "+className+";");
             entryStrings.add("");
         }
-        for(IStringify<?> entry : this.entries) {
+        for(IClampedStringWriter entry : this.entries) {
             for(String comment : entry.getComments()) entryStrings.add("//"+comment);
             entryStrings.add(entry.toString());
             entryStrings.add("");
@@ -69,8 +63,7 @@ public class ZenFileWriter extends CommentedWriter<ZenFileWriter> {
         return entryStrings;
     }
 
-    @Override
     public void write(String filePath, boolean overwrite) {
-        FileUtil.writeLinesToFile(filePath,stringify(),!overwrite);
+        FileUtil.writeLinesToFile(filePath, getClampedLines(),!overwrite);
     }
 }

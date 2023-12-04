@@ -1,6 +1,7 @@
 package mods.thecomputerizer.scriptify;
 
 import mods.thecomputerizer.scriptify.command.ScriptifyCommands;
+import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.network.PacketQueryContainer;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
 import mods.thecomputerizer.theimpossiblelibrary.network.NetworkHandler;
@@ -19,6 +20,7 @@ import java.util.Objects;
 public class Scriptify {
 
     public Scriptify() {
+        IOUtils.loadDefaults();
         NetworkHandler.queueClientPacketRegister(PacketQueryContainer.class);
         NetworkHandler.queueServerPacketRegister(PacketSendContainerInfo.class);
     }
@@ -35,8 +37,12 @@ public class Scriptify {
     }
 
     public static File getConfigFile(String path) {
-        path = "config/"+ScriptifyRef.NAME+"/"+path+".cfg";
+        path = "config/"+ScriptifyRef.NAME+"/"+path;
         return FileUtil.generateNestedFile(new File(path),false);
+    }
+
+    public static ResourceLocation getResource(String path) {
+        return new ResourceLocation(ScriptifyRef.MODID,path);
     }
 
     public static String langKey(String type, String ... args) throws IllegalArgumentException {
@@ -50,7 +56,23 @@ public class Scriptify {
         return keyBuilder.toString();
     }
 
-    public static ResourceLocation getResource(String path) {
-        return new ResourceLocation(ScriptifyRef.MODID,path);
+    public static void logDebug(String msg, Object ... args) {
+        ScriptifyRef.LOGGER.debug(msg,args);
+    }
+
+    public static void logError(String msg, Object ... args) {
+        ScriptifyRef.LOGGER.error(msg,args);
+    }
+
+    public static void logFatal(String msg, Object ... args) {
+        ScriptifyRef.LOGGER.error(msg,args);
+    }
+
+    public static void logInfo(String msg, Object ... args) {
+        ScriptifyRef.LOGGER.info(msg,args);
+    }
+
+    public static void logWarn(String msg, Object ... args) {
+        ScriptifyRef.LOGGER.warn(msg,args);
     }
 }

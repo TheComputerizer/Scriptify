@@ -1,17 +1,24 @@
 package mods.thecomputerizer.scriptify.command.parameters;
 
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
+import lombok.Setter;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.ISubType;
+import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.theimpossiblelibrary.util.NetworkUtil;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Objects;
 
 public abstract class Parameter<T> implements ISubType<T> {
+
+    protected Collection<String> parameterSets = new ArrayList<>();
 
     public static Parameter<?> read(ByteBuf buf) {
         Parameter<?> parameter = (Parameter<?>)Type.getParameter(NetworkUtil.readString(buf)).make();
@@ -19,15 +26,11 @@ public abstract class Parameter<T> implements ISubType<T> {
         return parameter;
     }
 
-    private final Type type;
-    protected String valueStr;
+    @Getter private final Type type;
+    @Setter protected String valueStr;
 
     public Parameter(Type type) {
         this.type = type;
-    }
-
-    public Type getType() {
-        return this.type;
     }
 
     @Override
@@ -38,7 +41,7 @@ public abstract class Parameter<T> implements ISubType<T> {
 
     @Override
     public T execute(MinecraftServer server, ICommandSender sender) throws CommandException {
-        if(Objects.isNull(this.valueStr)) this.valueStr = this.type.getDefault();
+        if(Objects.isNull(this.valueStr)) this.valueStr = ScriptifyConfigHelper.getDefaultParameter(this.parameterSets,this.getName());
         return parse(server,sender,this.valueStr);
     }
 
@@ -74,6 +77,10 @@ public abstract class Parameter<T> implements ISubType<T> {
         if(split.length<2)
             throw new CommandException(inject("Unable to parse empty value for parameter `{}`",split[0]));
         return withSpacing ? withSpacing(split[1]) : split[1];
+    }
+
+    public void setParameterSets(Collection<String> parameterSets) {
+        this.parameterSets = parameterSets;
     }
 
     public void throwGeneric(String type, Object ... args) throws CommandException {

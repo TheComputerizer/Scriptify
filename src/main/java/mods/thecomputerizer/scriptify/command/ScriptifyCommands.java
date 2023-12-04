@@ -2,6 +2,7 @@ package mods.thecomputerizer.scriptify.command;
 
 import mcp.MethodsReturnNonnullByDefault;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
+import mods.thecomputerizer.scriptify.command.ISubType.Type;
 import mods.thecomputerizer.scriptify.command.subcmd.SubCmd;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommand;
@@ -21,7 +22,7 @@ public class ScriptifyCommands extends AbstractCommand implements ICommand {
 
     private SubCmd nextSubCmd;
     public ScriptifyCommands() {
-        super(ISubType.Type.COMMAND_HELP,ISubType.Type.COMMAND_RECIPE);
+        super(Type.COMMAND_HELP,Type.COMMAND_RECIPE,Type.COMMAND_TEST);
     }
 
     @Override

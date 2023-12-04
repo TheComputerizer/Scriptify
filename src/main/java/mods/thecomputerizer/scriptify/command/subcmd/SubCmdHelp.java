@@ -1,4 +1,4 @@
-package mods.thecomputerizer.scriptify.command.subcmd.help;
+package mods.thecomputerizer.scriptify.command.subcmd;
 
 import mods.thecomputerizer.scriptify.command.subcmd.SubCmd;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 public class SubCmdHelp extends SubCmd {
 
     public SubCmdHelp() {
-        super(Type.COMMAND_HELP,Type.COMMAND_COMMANDS,Type.COMMAND_PARAMETERS);
+        super(Type.COMMAND_HELP);
     }
     @Override
     protected boolean hasParameters() {

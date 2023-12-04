@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "package": "mods.thecomputerizer.scriptify.mixin.mods",
+  "refmap": "scriptify.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "ExpressionCallStaticAccessor",
+    "ExpressionIntAccessor",
+    "ExpressionStringAccessor",
+    "ParsedExpressionArrayAccessor",
+    "ParsedExpressionBinaryAccessor",
+    "ParsedExpressionCallAccessor",
+    "ParsedExpressionCastAccessor",
+    "ParsedExpressionMapAccessor",
+    "ParsedExpressionMemberAccessor",
+    "ParsedExpressionValueAccessor",
+    "ParsedExpressionVariableAccessor",
+    "StatementExpressionAccessor"
+  ],
+  "client": []
+}
