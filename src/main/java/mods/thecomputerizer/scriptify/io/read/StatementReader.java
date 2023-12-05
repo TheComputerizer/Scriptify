@@ -1,7 +1,7 @@
 package mods.thecomputerizer.scriptify.io.read;
 
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.mixin.mods.StatementExpressionAccessor;
+import mods.thecomputerizer.scriptify.mixin.access.StatementExpressionAccessor;
 import stanhebben.zenscript.statements.Statement;
 import stanhebben.zenscript.statements.StatementExpression;
 
@@ -28,8 +28,8 @@ public class StatementReader implements IClampedStringReader<String> {
     }
 
     public void copy(List<String> lines) {
-        Scriptify.logInfo("Statement position is {}",this.statement.getPosition());
-        Scriptify.logInfo("Statement class is {}",this.statement.getClass().getName());
+        Scriptify.logDebug("Statement position is {}",this.statement.getPosition());
+        Scriptify.logDebug("Statement class is {}",this.statement.getClass().getName());
         List<String> unformatted = new ArrayList<>();
         if(this.statement instanceof StatementExpression) {
             StatementExpressionAccessor access = (StatementExpressionAccessor)this.statement;

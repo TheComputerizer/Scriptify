@@ -1,21 +1,10 @@
-package mods.thecomputerizer.scriptify.data;
+package mods.thecomputerizer.scriptify.io.data;
 
 import mods.thecomputerizer.scriptify.io.IOUtils;
 
-import javax.annotation.Nullable;
-import java.util.*;
+import java.util.List;
 
 public class RecipeBlueprint {
-
-    private static final Map<String,List<RecipeBlueprint>> METHODS_BY_CLASS = new HashMap<>();
-
-    public static @Nullable RecipeBlueprint getBlueprint(String className, String methodName) {
-        List<RecipeBlueprint> methods = METHODS_BY_CLASS.get(className);
-        if(Objects.nonNull(methods))
-            for(RecipeBlueprint blueprint : methods)
-                if(blueprint.methodName.matches(methodName)) return blueprint;
-        return null;
-    }
 
     private final String className;
     private final String methodName;
@@ -25,8 +14,25 @@ public class RecipeBlueprint {
         this.className = className;
         this.methodName = methodName;
         this.parameterTypes = parameterTypes;
-        METHODS_BY_CLASS.putIfAbsent(className,new ArrayList<>());
-        METHODS_BY_CLASS.get(className).add(this);
+    }
+
+    public boolean matches(String simpleClass, String otherMethod) {
+        if(this.methodName.matches(otherMethod)) {
+            String[] splitClass = this.className.split("\\.");
+            return simpleClass.matches(splitClass[splitClass.length-1]);
+        }
+        return false;
+    }
+
+    public boolean verifyArgs(List<Object> args) {
+        for(int i=0; i<this.parameterTypes.length; i++) {
+
+        }
+        return true;
+    }
+
+    private boolean verifyArg(Object arg, String parameter) {
+
     }
 
     public String write(Object ... parameters) {

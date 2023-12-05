@@ -1,8 +1,7 @@
 package mods.thecomputerizer.scriptify.io.read;
 
-import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.io.IOUtils;
-import mods.thecomputerizer.scriptify.mixin.mods.*;
+import mods.thecomputerizer.scriptify.mixin.access.*;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import stanhebben.zenscript.parser.expression.*;
 

@@ -22,7 +22,13 @@ public class ScriptifyConfig {
     @LangKey("config."+ScriptifyRef.MODID+".parameters")
     public static Parameters PARAMETERS = new Parameters();
 
-    public static class Commands {}
+    public static class Commands {
+
+        @Name("commandBuilders")
+        @Comment("Determines the file from which prebuilt commands will be read from")
+        @LangKey("config."+ScriptifyRef.MODID+".commands.commandBuilders")
+        public String commandBuilders = "commands.txt";
+    }
 
     public static class Parameters {
 

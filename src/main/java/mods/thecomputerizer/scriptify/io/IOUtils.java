@@ -1,8 +1,9 @@
 package mods.thecomputerizer.scriptify.io;
 
 import mods.thecomputerizer.scriptify.Scriptify;
+import mods.thecomputerizer.scriptify.io.data.BEP;
 import mods.thecomputerizer.scriptify.io.read.PartialExpressionReader;
-import mods.thecomputerizer.scriptify.mixin.mods.ExpressionIntAccessor;
+import mods.thecomputerizer.scriptify.mixin.access.ExpressionIntAccessor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fluids.FluidStack;
@@ -11,10 +12,9 @@ import stanhebben.zenscript.annotations.OperatorType;
 import stanhebben.zenscript.expression.Expression;
 import stanhebben.zenscript.expression.ExpressionInt;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class IOUtils {
@@ -24,23 +24,32 @@ public class IOUtils {
     private static final Pattern PARAMETER_PATTERN = Pattern.compile("([a-z0-9_\\-:\\[\\]]+)=([a-z0-9_\\-:\\[\\]]+)",Pattern.CASE_INSENSITIVE);
     private static final Map<String,Function<String,Object>> READER_MAP = new HashMap<>();
     private static final Map<String,Function<Object,String>> WRITER_MAP = new HashMap<>();
+    private static final Map<String,Set<String>> RECIPE_TYPE_CACHE = new HashMap<>();
 
     public static void loadDefaults() {
         loadDefaultReaders();
+        loadDefaultRecipeTypes();
         loadDefaultWriters();
     }
 
-    public static void loadDefaultReaders() {
+    private static void loadDefaultReaders() {
         READER_MAP.put("bep",IOUtils::parseBEP);
+        READER_MAP.put("bepArray",IOUtils::parseBEP);
     }
 
-    public static void loadDefaultWriters() {
+    private static void loadDefaultRecipeTypes() {
+        RECIPE_TYPE_CACHE.put("recipes",new HashSet<>());
+        RECIPE_TYPE_CACHE.get("recipes").addAll(Arrays.asList("addShaped","addShapeless"));
+        RECIPE_TYPE_CACHE.put("TableCrafting",new HashSet<>());
+        RECIPE_TYPE_CACHE.get("TableCrafting").addAll(Arrays.asList("addShaped","addShapeless"));
+    }
+
+    private static void loadDefaultWriters() {
         WRITER_MAP.put("item",obj -> {
             if(obj instanceof ItemStack) {
                 return writeItem((ItemStack)obj).toString();
             } else if(obj instanceof Expression[]) {
                 Expression[] args = (Expression[])obj;
-                Scriptify.logInfo("ITEM WRITER HAS {} ARGS",args.length);
                 if(args.length>=2) {
                     ResourceLocation resource = new ResourceLocation(new PartialExpressionReader(args[0]).toString());
                     if(args[1] instanceof ExpressionInt)
@@ -56,7 +65,6 @@ public class IOUtils {
                 return writeLiquid((FluidStack)obj).toString();
             } else if(obj instanceof Expression[]) {
                 Expression[] args = (Expression[])obj;
-                Scriptify.logInfo("LIQUID WRITER HAS {} ARGS",args.length);
                 if(args.length>=1) return writeLiquid(new PartialExpressionReader(args[0]).toString(),1).toString();
             }
             return "null";
@@ -66,19 +74,43 @@ public class IOUtils {
                 return writeOredict((ItemStack)obj).toString();
             } else if(obj instanceof Expression[]) {
                 Expression[] args = (Expression[])obj;
-                Scriptify.logInfo("OREDICT WRITER HAS {} ARGS",args.length);
                 if(args.length==1) return writeOredict(new PartialExpressionReader(args[0]).toString(),1).toString();
             }
             return "null";
         });
     }
 
+    public static Matcher getArrayMatcher(String name) {
+        return ARRAY_TYPE_PATTERN.matcher(name);
+    }
+
     public static Function<String,Object> getReaderFunc(String name) {
+        Matcher arrayMatcher = ARRAY_TYPE_PATTERN.matcher(name);
+        boolean isArray = false;
+        if(arrayMatcher.matches()) {
+            isArray = true;
+            name = arrayMatcher.replaceAll("");
+        }
         if(matchesAny(name,"bep","crafttweaker.item.IItemStack","IItemStack","IItemStack","ItemStack",
                 "net.minecraft.item.ItemStack","Item","crafttweaker.liquid.ILiquidStack","ILiquidStack","FluidStack",
                 "net.minecraftforge.fluids.FluidStack","Fluid","Liquid","crafttweaker.oredict.IOreDictEntry",
                 "IOreDictEntry","OreDict","Ore","OreDictionary","IOreDict")) name = "bep";
+        else name = "basic";
+        if(isArray) name+="Array";
         return READER_MAP.getOrDefault(name,Object::toString);
+    }
+
+    public static List<String> combineRecipeTypes(String prefix, String arg) {
+        List<String> combined = new ArrayList<>();
+        for(Map.Entry<String,Set<String>> classEntry : RECIPE_TYPE_CACHE.entrySet()) {
+            String className = classEntry.getKey();
+            for(String methodName : classEntry.getValue()) {
+                if(className.matches("recipes")) methodName = className+"."+methodName;
+                methodName = prefix+"="+methodName;
+                if(methodName.startsWith(arg)) combined.add(methodName);
+            }
+        }
+        return combined;
     }
 
     public static Function<Object,String> getWriterFunc(String name) {
@@ -139,7 +171,6 @@ public class IOUtils {
             case OR: return "||";
             case AND: return "&&";
             case XOR: return "^";
-            case NEG: return "-";
             case NOT: return "!";
             case EQUALS: return "=";
             default: return type.toString();

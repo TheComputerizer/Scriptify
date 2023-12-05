@@ -2,18 +2,14 @@ package mods.thecomputerizer.scriptify.io.read;
 
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.io.IOUtils;
-import mods.thecomputerizer.scriptify.mixin.mods.ExpressionCallStaticAccessor;
-import mods.thecomputerizer.scriptify.mixin.mods.ExpressionIntAccessor;
-import mods.thecomputerizer.scriptify.mixin.mods.ExpressionStringAccessor;
+import mods.thecomputerizer.scriptify.mixin.access.ExpressionCallStaticAccessor;
+import mods.thecomputerizer.scriptify.mixin.access.ExpressionIntAccessor;
+import mods.thecomputerizer.scriptify.mixin.access.ExpressionStringAccessor;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
-import stanhebben.zenscript.expression.Expression;
 import stanhebben.zenscript.expression.ExpressionCallStatic;
 import stanhebben.zenscript.expression.ExpressionInt;
 import stanhebben.zenscript.expression.ExpressionString;
 import stanhebben.zenscript.expression.partial.IPartialExpression;
-import stanhebben.zenscript.parser.expression.ParsedExpression;
-import stanhebben.zenscript.type.ZenType;
-import stanhebben.zenscript.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +30,7 @@ public class PartialExpressionReader implements IClampedStringReader<String> {
 
     @Override
     public void copy(List<String> lines) {
-        Scriptify.logInfo("Partial expression class is {}",this.expression.getClass().getName());
+        Scriptify.logDebug("Partial expression class is {}",this.expression.getClass().getName());
         if(this.expression instanceof ExpressionCallStatic) {
             ExpressionCallStaticAccessor access = (ExpressionCallStaticAccessor)this.expression;
             lines.add(IOUtils.getWriterFunc(this.expression.getType().getName()).apply(access.getArguments()));

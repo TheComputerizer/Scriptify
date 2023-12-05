@@ -5,6 +5,7 @@ import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.parameters.types.*;
 import mods.thecomputerizer.scriptify.command.subcmd.SubCmdHelp;
 import mods.thecomputerizer.scriptify.command.subcmd.SubCmdRecipe;
+import mods.thecomputerizer.scriptify.command.subcmd.SubCmdRun;
 import mods.thecomputerizer.scriptify.command.subcmd.SubCmdTest;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -31,6 +32,7 @@ public interface ISubType<T> {
 
         COMMAND_HELP("help",SubCmdHelp::new),
         COMMAND_RECIPE("recipe",SubCmdRecipe::new),
+        COMMAND_RUN("run",SubCmdRun::new),
         COMMAND_TEST("test",SubCmdTest::new),
         PARAMETER_CONTAINER_TYPE("containerType","point", ParameterContainerType::new),
         PARAMETER_CONTAINER_SIZE("containerSize","9x3", ParameterContainerSize::new),
@@ -38,6 +40,7 @@ public interface ISubType<T> {
         PARAMETER_NAME("name","name", ParameterName::new),
         PARAMETER_OREDICT("oreDict","[]", ParameterOreDict::new),
         PARAMETER_PARAMETERS("parameters","default", ParameterParameters::new),
+        PARAMETER_QUERY("query","help", ParameterParameters::new),
         PARAMETER_TOTAL_SLOTS("totalSlots","27",ParameterTotalSlots::new),
         PARAMETER_TYPE("type","shaped",ParameterType::new),
         PARAMETER_ZEN_FILE_INPUT("zenFileInput","scripts/"+ScriptifyRef.NAME+"/inputs/input.zs",ParameterZenFileInput::new),

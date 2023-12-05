@@ -1,23 +1,101 @@
 package mods.thecomputerizer.scriptify.config;
 
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
+import net.minecraft.util.Tuple;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
+@SuppressWarnings("unchecked")
 public class ScriptifyConfigHelper {
 
+    private static final Map<String,String> CACHED_COMMANDS = new HashMap<>();
     private static final Map<String,String[]> CACHED_PARAMETER_SETS = new HashMap<>();
-    public static boolean needsCache = true;
+    public static final Map<String,CacheState> CACHE_STATE = initCache();
 
-    public static void onConfigReloaded() {
-        CACHED_PARAMETER_SETS.clear();
-        needsCache = true;
+    public static @Nullable String buildCommand(String type) {
+        queryCache("commands",CACHED_COMMANDS);
+        String command = CACHED_COMMANDS.get(type);
+        Scriptify.logInfo("Built command from {} is {}",type,command);
+        if(Objects.isNull(command)) return null;
+        if(!command.startsWith("/")) command = "/"+command;
+        return command;
+    }
+
+    public static <T> void cacheFileArrays(File file, Map<String,T> map) {
+        map.clear();
+        if(file.exists()) {
+            try(BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String setName = null;
+                List<String> parameters = new ArrayList<>();
+                String line = reader.readLine();
+                while(Objects.nonNull(line)) {
+                    if(line.contains("<")) {
+                        setName = line.substring(0,line.indexOf("<")).split("=",2)[0].trim();
+                        line = line.substring(line.indexOf("<"));
+                    }
+                    boolean endOfSet = false;
+                    if(line.contains(">")) {
+                        endOfSet = true;
+                        line = line.substring(0,line.indexOf(">")).trim();
+                    }
+                    if(!line.isEmpty()) parameters.add(line.trim());
+                    if(endOfSet && Objects.nonNull(setName)) {
+                        map.put(setName,(T)parameters.toArray(new String[0]));
+                        parameters.clear();
+                    }
+                    line = reader.readLine();
+                }
+            } catch(IOException ex) {
+                Scriptify.logError("Unable to cache arrays from file {}!",file.getName(),ex);
+            }
+        }
+        Scriptify.logInfo("Cached {} arrays from file {}",map.size(),file.getName());
+    }
+
+    public static <T> void cacheFileMap(File file, Map<String,T> map) {
+        map.clear();
+        if(file.exists()) {
+            try(BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line = reader.readLine();
+                while(Objects.nonNull(line)) {
+                    if(line.contains("=")) {
+                        String[] split = line.split("=",2);
+                        map.put(split[0].trim(),(T)split[1].trim());
+                    }
+                    line = reader.readLine();
+                }
+            } catch(IOException ex) {
+                Scriptify.logError("Unable to cache lines from file {}!",file.getName(),ex);
+            }
+        }
+        Scriptify.logInfo("Cached {} lines from file {}",map.size(),file.getName());
+    }
+
+    public static List<String> getCachedCommandNames(String prefix, String arg) {
+        queryCache("commands",CACHED_COMMANDS);
+        List<String> ret = new ArrayList<>();
+        for(String command : CACHED_COMMANDS.keySet())
+            if(arg.isEmpty() || command.startsWith(arg))
+                ret.add(prefix+"="+command);
+        return ret;
+    }
+
+    public static List<String> getCachedParameterSetNames(String prefix, String arg) {
+        queryCache("parameters",CACHED_PARAMETER_SETS);
+        List<String> ret = new ArrayList<>();
+        for(String parameters : CACHED_PARAMETER_SETS.keySet())
+            if(arg.isEmpty() || parameters.startsWith(arg))
+                ret.add(prefix+"="+parameters);
+        return ret;
     }
 
     public static String getDefaultParameter(Collection<String> parameterSets, String name) {
@@ -39,46 +117,115 @@ public class ScriptifyConfigHelper {
     }
 
     public static String[] getParameterSet(String name) {
-        if(needsCache) {
-            cacheParameterSets();
-            needsCache = false;
-        }
+        queryCache("parameters",CACHED_PARAMETER_SETS);
         return CACHED_PARAMETER_SETS.get(name);
     }
 
-    public static File getParametersFile() {
-        return FileUtil.generateNestedFile(Scriptify.getConfigFile(ScriptifyConfig.PARAMETERS.parameters),false);
+    private static Map<String,CacheState> initCache() {
+        Map<String,CacheState> ret = new HashMap<>();
+        Scriptify.logInfo("INIT CACHE");
+        ret.put("commands",new CacheState(ScriptifyConfigHelper::cacheFileMap,"Commands","commandBuilders"));
+        ret.put("parameters",new CacheState(ScriptifyConfigHelper::cacheFileArrays,"Parameters","parameters"));
+        Scriptify.logInfo("CACHE HAS {} ELEMENTS",ret.size());
+        return ret;
     }
 
-    public static void cacheParameterSets() {
-        File parametersFile = getParametersFile();
-        if(parametersFile.exists()) {
-            try(BufferedReader reader = new BufferedReader(new FileReader(parametersFile))) {
-                String setName = null;
-                List<String> parameters = new ArrayList<>();
-                String line = reader.readLine();
-                while(Objects.nonNull(line)) {
-                    if(line.contains("<")) {
-                        setName = line.substring(0,line.indexOf("<")).split("=")[0].trim();
-                        line = line.substring(line.indexOf("<"));
-                    }
-                    boolean endOfSet = false;
-                    if(line.contains(">")) {
-                        endOfSet = true;
-                        line = line.substring(0,line.indexOf(">")).trim();
-                    }
-                    if(line.contains("=")) parameters.add(line.trim());
-                    if(endOfSet && Objects.nonNull(setName)) {
-                        CACHED_PARAMETER_SETS.put(setName,parameters.toArray(new String[0]));
-                        Scriptify.logInfo("Cached parameter set {} with values {}",setName,
-                                TextUtil.arrayToString(",",(Object[])CACHED_PARAMETER_SETS.get(setName)));
-                        parameters.clear();
-                    }
-                    line = reader.readLine();
+    public static void onConfigReloaded() {
+        for(Map.Entry<String,CacheState> entry : CACHE_STATE.entrySet()) {
+            CACHED_COMMANDS.clear();
+            CACHED_PARAMETER_SETS.clear();
+            entry.getValue().resetCache();
+        }
+    }
+
+    public static void queryCache(String type, Map<String,?> cacheMap) {
+        CacheState state = CACHE_STATE.get(type);
+        if(Objects.nonNull(state)) {
+            Scriptify.logInfo(state.configFileFields.getFirst().getName());
+            state.applyConsumer(cacheMap);
+        }
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    public static final class CacheState {
+
+        private final AtomicBoolean state;
+        private final BiConsumer<File,Map<String,?>> consumer;
+        private final Tuple<Field,Field> configFileFields;
+        private File cachedFile;
+
+        public CacheState(BiConsumer<File,Map<String,?>> consumer, String categoryField, String fileField) {
+            this.state = new AtomicBoolean(true);
+            this.consumer = consumer;
+            this.configFileFields = getConfigFields(getInnerClass(ScriptifyConfig.class,categoryField),categoryField,fileField);
+        }
+
+        public void applyConsumer(Map<String,?> cacheMap) {
+            if(needsCache()) this.consumer.accept(getFile(),cacheMap);
+        }
+
+        private void cacheFile() {
+            Object category = getFieldInstance(null,this.configFileFields.getFirst());
+            if(Objects.nonNull(category)) {
+                Object pathObj = getFieldInstance(category,this.configFileFields.getSecond());
+                if(pathObj instanceof String) {
+                    File file = Scriptify.getConfigFile((String)pathObj);
+                    this.cachedFile = FileUtil.generateNestedFile(file,false);
                 }
-            } catch(IOException ex) {
-                Scriptify.logError("Unable to cache parameters sets!",ex);
             }
+        }
+
+        private Tuple<Field,Field> getConfigFields(@Nullable Class<?> categoryClass, String categoryField, String fileField) {
+            Field category = getField(ScriptifyConfig.class,categoryField.toUpperCase());
+            if(Objects.nonNull(category)) {
+                Field filePath = getField(categoryClass,fileField);
+                if(Objects.nonNull(filePath)) return new Tuple<>(category,filePath);
+            }
+            return null;
+        }
+
+        private Field getField(@Nullable Class<?> clazz, String fieldName) {
+            if(Objects.isNull(clazz)) return null;
+            try {
+                return clazz.getDeclaredField(fieldName);
+            } catch(NoSuchFieldException ex) {
+                Scriptify.logError("Could not find file of name {} in class {}!",fieldName,clazz,ex);
+                return null;
+            }
+        }
+
+        private File getFile() {
+            if(Objects.isNull(this.cachedFile) || !this.cachedFile.exists()) cacheFile();
+            return this.cachedFile;
+        }
+
+        private Object getFieldInstance(@Nullable Object instance, Field field) {
+            try {
+                return field.get(instance);
+            } catch(IllegalAccessException ex) {
+                Scriptify.logError("Could not get instance of field {} in class {}!",field.getName(),
+                        field.getDeclaringClass(),ex);
+                return null;
+            }
+        }
+
+        private Class<?> getInnerClass(@Nullable Class<?> clazz, String name) {
+            if(Objects.isNull(clazz)) return null;
+            for(Class<?> categoryClass : clazz.getDeclaredClasses())
+                if(categoryClass.getSimpleName().matches(name)) return categoryClass;
+            return null;
+        }
+
+        private boolean needsCache() {
+            if(this.state.getAndSet(false)) {
+                cacheFile();
+                return true;
+            }
+            return false;
+        }
+
+        private void resetCache() {
+            this.state.set(true);
         }
     }
 }

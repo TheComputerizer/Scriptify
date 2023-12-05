@@ -2,8 +2,8 @@ package mods.thecomputerizer.scriptify.command.subcmd;
 
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.AbstractCommand;
-import mods.thecomputerizer.scriptify.data.RecipeBlueprint;
-import mods.thecomputerizer.scriptify.data.RecipeDataHandler;
+import mods.thecomputerizer.scriptify.io.data.RecipeBlueprint;
+import mods.thecomputerizer.scriptify.io.data.RecipeDataHandler;
 import mods.thecomputerizer.scriptify.io.write.SingletonWriter;
 import mods.thecomputerizer.scriptify.network.PacketQueryContainer;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
@@ -38,7 +38,7 @@ public class SubCmdRecipe extends SubCmd {
     @Override
     public AbstractCommand execute(MinecraftServer server, ICommandSender sender) throws CommandException {
         defineParameterSets(server,sender);
-        String containerType = ((String)getParameter("containerType").execute(server,sender)).trim().toLowerCase();
+        String containerType = ((String)getParameter(this.getType(),"containerType").execute(server,sender)).trim().toLowerCase();
         if(sender instanceof EntityPlayerMP) {
             EntityPlayerMP player = (EntityPlayerMP)sender;
             if(containerType.matches("container")) new PacketQueryContainer(this).addPlayers(player).send();
@@ -53,10 +53,10 @@ public class SubCmdRecipe extends SubCmd {
             String filePath = "unknown";
             try {
                 defineParameterSets(server,player);
-                type = (String)getParameter("type").execute(server,player);
+                type = (String)getParameter(this.getType(),"type").execute(server,player);
                 IInventory inventory = packet.getInventory(player.getServerWorld());
-                String name = (String)getParameter("name").execute(server,player);
-                filePath = (String)getParameter("zenFileOutput").execute(server,player);
+                String name = (String)getParameter(this.getType(),"name").execute(server,player);
+                filePath = (String)getParameter(this.getType(),"zenFileOutput").execute(server,player);
                 ZenFileWriter writer = shapelessTest(inventory,name,filePath);
                 writer.addPreProcessor("reloadable");
                 writer.write(filePath,true);

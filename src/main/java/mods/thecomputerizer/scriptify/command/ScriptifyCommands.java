@@ -22,7 +22,7 @@ public class ScriptifyCommands extends AbstractCommand implements ICommand {
 
     private SubCmd nextSubCmd;
     public ScriptifyCommands() {
-        super(Type.COMMAND_HELP,Type.COMMAND_RECIPE,Type.COMMAND_TEST);
+        super(Type.COMMAND_HELP,Type.COMMAND_RECIPE,Type.COMMAND_RUN,Type.COMMAND_TEST);
     }
 
     @Override

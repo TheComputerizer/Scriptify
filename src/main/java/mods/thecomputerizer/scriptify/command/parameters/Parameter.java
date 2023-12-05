@@ -6,6 +6,7 @@ import lombok.Setter;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.ISubType;
+import mods.thecomputerizer.scriptify.command.subcmd.SubCmd;
 import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.theimpossiblelibrary.util.NetworkUtil;
 import net.minecraft.command.CommandException;
@@ -19,6 +20,7 @@ import java.util.Objects;
 public abstract class Parameter<T> implements ISubType<T> {
 
     protected Collection<String> parameterSets = new ArrayList<>();
+    protected Type runningType;
 
     public static Parameter<?> read(ByteBuf buf) {
         Parameter<?> parameter = (Parameter<?>)Type.getParameter(NetworkUtil.readString(buf)).make();
@@ -31,6 +33,7 @@ public abstract class Parameter<T> implements ISubType<T> {
 
     public Parameter(Type type) {
         this.type = type;
+        this.runningType = type;
     }
 
     @Override
@@ -55,14 +58,11 @@ public abstract class Parameter<T> implements ISubType<T> {
         return this.type.name;
     }
 
-    @Override
-    public boolean isParameter() {
-        return true;
-    }
-
-    @Override
-    public String toString() {
-        return this.type.toString();
+    public String getValue(String unparsed, boolean withSpacing) throws CommandException {
+        String[] split = unparsed.split("=",2);
+        if(split.length<2)
+            throw new CommandException(inject("Unable to parse empty value for parameter `{}`",split[0]));
+        return withSpacing ? withSpacing(split[1]) : split[1];
     }
 
 
@@ -72,23 +72,9 @@ public abstract class Parameter<T> implements ISubType<T> {
         return str;
     }
 
-    public String getValue(String unparsed, boolean withSpacing) throws CommandException {
-        String[] split = unparsed.split("=",2);
-        if(split.length<2)
-            throw new CommandException(inject("Unable to parse empty value for parameter `{}`",split[0]));
-        return withSpacing ? withSpacing(split[1]) : split[1];
-    }
-
-    public void setParameterSets(Collection<String> parameterSets) {
-        this.parameterSets = parameterSets;
-    }
-
-    public void throwGeneric(String type, Object ... args) throws CommandException {
-        throw new CommandException(Scriptify.langKey("parameter",type),args);
-    }
-
-    public String withSpacing(String raw) {
-        return raw.replaceAll("\\^_"," ").trim();
+    @Override
+    public boolean isParameter() {
+        return true;
     }
 
     protected abstract T parse(MinecraftServer server, ICommandSender sender, String valueStr) throws CommandException;
@@ -99,5 +85,26 @@ public abstract class Parameter<T> implements ISubType<T> {
         if(Objects.isNull(this.valueStr) || this.valueStr.isEmpty()) this.valueStr = getType().getDefault();
         ScriptifyRef.LOGGER.error("SENDING PARAMETER {} WITH VALUE {}",this.getName(),this.valueStr);
         NetworkUtil.writeString(buf,this.valueStr);
+    }
+
+    public void setParameterSets(Collection<String> parameterSets) {
+        this.parameterSets = parameterSets;
+    }
+
+    public void setRunningType(Type runningType) {
+        this.runningType = runningType;
+    }
+
+    public void throwGeneric(String type, Object ... args) throws CommandException {
+        throw new CommandException(Scriptify.langKey("parameter",type),args);
+    }
+
+    @Override
+    public String toString() {
+        return this.type.toString();
+    }
+
+    public String withSpacing(String raw) {
+        return raw.replaceAll("\\^_"," ").trim();
     }
 }

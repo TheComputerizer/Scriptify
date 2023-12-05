@@ -1,12 +1,14 @@
 {
   "required": true,
-  "package": "mods.thecomputerizer.scriptify.mixin.mods",
+  "package": "mods.thecomputerizer.scriptify.mixin.access",
   "refmap": "scriptify.refmap.json",
   "target": "@env(DEFAULT)",
   "minVersion": "0.8",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "ExpressionBoolAccessor",
     "ExpressionCallStaticAccessor",
+    "ExpressionFloatAccessor",
     "ExpressionIntAccessor",
     "ExpressionStringAccessor",
     "ParsedExpressionArrayAccessor",

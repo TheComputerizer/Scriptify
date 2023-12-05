@@ -1,7 +1,7 @@
 package mods.thecomputerizer.scriptify.command.subcmd;
 
 import mods.thecomputerizer.scriptify.command.AbstractCommand;
-import mods.thecomputerizer.scriptify.io.read.ZenFileReader;
+import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -9,12 +9,12 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
-public class SubCmdTest extends SubCmd {
+public class SubCmdRun extends SubCmd {
 
-    public SubCmdTest() {
-        super(Type.COMMAND_TEST,Type.PARAMETER_PARAMETERS,Type.PARAMETER_ZEN_FILE_INPUT,
-                Type.PARAMETER_ZEN_FILE_OUTPUT);
+    public SubCmdRun() {
+        super(Type.COMMAND_RUN,Type.PARAMETER_TYPE);
     }
 
     @Override
@@ -24,11 +24,11 @@ public class SubCmdTest extends SubCmd {
 
     @Override
     public AbstractCommand execute(MinecraftServer server, ICommandSender sender) throws CommandException {
-        defineParameterSets(server,sender);
-        String fileInput = ((String)getParameter(this.getType(),"zenFileInput").execute(server,sender)).trim().toLowerCase();
-        String fileOutput = ((String)getParameter(this.getType(),"zenFileOutput").execute(server,sender)).trim().toLowerCase();
-        new ZenFileReader(fileInput).testMove(fileOutput);
-        sendGeneric(sender,array("test","move","success"),fileInput,fileOutput);
+        String command = ScriptifyConfigHelper.buildCommand((String)getParameter(this.getType(),"type").execute(server,sender));
+        if(Objects.nonNull(command)) {
+            server.commandManager.executeCommand(sender,command);
+            sendSuccess(sender,command);
+        } else throwGeneric(array(getName(),"fail"));
         return this;
     }
 

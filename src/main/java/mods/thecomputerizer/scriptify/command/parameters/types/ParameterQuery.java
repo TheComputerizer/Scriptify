@@ -2,22 +2,22 @@ package mods.thecomputerizer.scriptify.command.parameters.types;
 
 import mods.thecomputerizer.scriptify.command.parameters.common.ParameterArray;
 import mods.thecomputerizer.scriptify.command.parameters.common.ParameterString;
-import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
-import mods.thecomputerizer.scriptify.io.IOUtils;
-
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
-public class ParameterParameters extends ParameterArray<String,ParameterString> {
+public class ParameterQuery extends ParameterArray<String,ParameterString> {
 
-    public ParameterParameters() {
-        super(Type.PARAMETER_PARAMETERS,ParameterString::new);
+    public ParameterQuery() {
+        super(Type.PARAMETER_QUERY,ParameterString::new);
     }
 
     @Override
     public List<String> getTabCompletions(String... args) {
+        List<String> ret = new ArrayList<>();
         String name = this.getName();
         String arg = args[0].contains("=") ? args[0].split("=",2)[1] : args[0];
-        return ScriptifyConfigHelper.getCachedParameterSetNames(name,arg);
+        for(Type type : Type.values())
+            if(type.name.startsWith(arg)) ret.add(name+"="+type.name);
+        return ret;
     }
 }
