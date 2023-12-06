@@ -10,12 +10,12 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 public class SubCmdHelp extends SubCmd {
 
@@ -27,7 +27,8 @@ public class SubCmdHelp extends SubCmd {
     }
 
     public SubCmdHelp() {
-        super(Type.COMMAND_HELP,Type.PARAMETER_PARAMETERS,Type.PARAMETER_QUERY,Type.PARAMETER_TYPE);
+        super(Type.COMMAND_HELP,Type.PARAMETER_PARAMETERS,Type.PARAMETER_QUERY,Type.PARAMETER_SAVE_PARAMETERS,
+                Type.PARAMETER_TYPE);
     }
 
     @SuppressWarnings("unchecked")
@@ -35,11 +36,11 @@ public class SubCmdHelp extends SubCmd {
     public AbstractCommand execute(MinecraftServer server, ICommandSender sender) throws CommandException {
         defineParameterSets(server,sender);
         List<String> queries = ((List<String>)getParameter(this.getType(),"query").execute(server,sender));
-        if(Objects.nonNull(queries) && !queries.isEmpty()) {
+        queries.removeIf(StringUtils::isBlank);
+        if(!queries.isEmpty()) {
             for(String query : queries) {
-                String category = "parameters";
-                if(Objects.isNull(Type.getParameter(query))) category = "commands";
-                String type = ((String)getParameter(this.getType(),"query").execute(server,sender)).trim().toLowerCase();
+                String category = Type.isCommand(query) ? "commands" : "parameters";
+                String type = ((String)getParameter(this.getType(),"type").execute(server,sender)).toLowerCase();
                 String lang = Scriptify.langKey(category,query,type);
                 sender.sendMessage(new TextComponentTranslation(lang,getTypeString()));
             }

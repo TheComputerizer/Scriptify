@@ -20,13 +20,13 @@ public class RecipeDataHandler {
 
     private static final List<RecipeBlueprint> BLUEPRINT_LIST = new ArrayList<>();
     public static final RecipeBlueprint CRAFTING_SHAPED_BLUEPRINT = addBluePrint(new RecipeBlueprint("recipes",
-            "addShaped","string","item","item[][]"));
+            "addShaped","string","item","ingredient[][]"));
     public static final RecipeBlueprint CRAFTING_SHAPELESS_BLUEPRINT = addBluePrint(new RecipeBlueprint("recipes",
-            "addShapeless","string","item","item[]"));
+            "addShapeless","string","item","ingredient[]"));
     public static final RecipeBlueprint EXTENDED_SHAPED_BLUEPRINT = addBluePrint(new RecipeBlueprint(
-            "mods.extendedcrafting.TableCrafting", "addShaped","int","item","item[][]"));
+            "mods.extendedcrafting.TableCrafting", "addShaped","int","item","ingredient[][]"));
     public static final RecipeBlueprint EXTENDED_SHAPELESS_BLUEPRINT = addBluePrint(new RecipeBlueprint(
-            "mods.extendedcrafting.TableCrafting", "addShapeless","int","item","item[]"));
+            "mods.extendedcrafting.TableCrafting", "addShapeless","int","item","ingredient[]"));
     public static final RecipeBlueprint FURNACE_BLUEPRINT = addBluePrint(new RecipeBlueprint("furnace",
             "addRecipe","item","item","float"));
 
@@ -35,13 +35,15 @@ public class RecipeDataHandler {
         return blueprint;
     }
 
-    public static @Nullable ParsedRecipeData matchExpression(StatementExpression statement) {
+    public static @Nullable ParsedRecipeData matchExpression(StatementExpression statement) throws IllegalArgumentException {
         ParsedExpression expression = ((StatementExpressionAccessor)statement).getExpression();
         if(expression instanceof ParsedExpressionCall) {
             ParsedExpressionCallAccessor access = (ParsedExpressionCallAccessor)expression;
             RecipeBlueprint blueprint = matchMember((ParsedExpressionMember)access.getReceiver());
-            if(Objects.nonNull(blueprint))
+            if(Objects.nonNull(blueprint)) {
+                Scriptify.logInfo("Successfully located blueprint {}",blueprint);
                 return new ParsedRecipeData(blueprint,access.getArguments());
+            }
         } else Scriptify.logError("Expression of class {} cannot be parsed into recipe data!",expression.getClass().getName());
         return null;
     }
@@ -56,7 +58,7 @@ public class RecipeDataHandler {
     public static @Nullable RecipeBlueprint getBlueprint(String className, String methodName) {
         for(RecipeBlueprint blueprint : BLUEPRINT_LIST)
             if(blueprint.matches(className,methodName)) return blueprint;
-        Scriptify.logError("Unable to find matching recipe type for {}.{}!",className,methodName);
+        Scriptify.logError("Unable to find matching recipe type for {}#{}!",className,methodName);
         return null;
     }
 }

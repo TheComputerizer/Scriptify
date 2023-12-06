@@ -1,16 +1,16 @@
 package mods.thecomputerizer.scriptify.io.data;
 
+import crafttweaker.mc1120.oredict.MCOreDictEntry;
 import lombok.Getter;
 import lombok.Setter;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraftforge.oredict.OreIngredient;
 
 import java.util.Objects;
 
@@ -42,9 +42,9 @@ public class BEP {
         return Objects.nonNull(item) ? new ItemStack(item,this.amount,meta) : ItemStack.EMPTY;
     }
 
-    public NonNullList<ItemStack> asOreEntries() {
+    public MCOreDictEntry asOreEntries() {
         if(this.amount==0 || Objects.isNull(this.elements) || this.elements.length<2) return null;
-        return OreDictionary.getOres(this.elements[1]);
+        return MCOreDictEntry.getFromIngredient(new OreIngredient(this.elements[1]));
     }
 
     @Override

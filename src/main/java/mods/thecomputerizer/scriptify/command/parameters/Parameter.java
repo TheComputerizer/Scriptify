@@ -4,9 +4,7 @@ import io.netty.buffer.ByteBuf;
 import lombok.Getter;
 import lombok.Setter;
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.ISubType;
-import mods.thecomputerizer.scriptify.command.subcmd.SubCmd;
 import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.theimpossiblelibrary.util.NetworkUtil;
 import net.minecraft.command.CommandException;
@@ -79,11 +77,14 @@ public abstract class Parameter<T> implements ISubType<T> {
 
     protected abstract T parse(MinecraftServer server, ICommandSender sender, String valueStr) throws CommandException;
 
+    public void saveCollectedValue(String[] array, int index) {
+        array[index] = this.getName()+"="+this.valueStr;
+    }
+
     @Override
     public void send(ByteBuf buf) {
         NetworkUtil.writeString(buf,this.getName());
-        if(Objects.isNull(this.valueStr) || this.valueStr.isEmpty()) this.valueStr = getType().getDefault();
-        ScriptifyRef.LOGGER.error("SENDING PARAMETER {} WITH VALUE {}",this.getName(),this.valueStr);
+        if(Objects.isNull(this.valueStr) || this.valueStr.isEmpty()) this.valueStr = getType().getDefVal();
         NetworkUtil.writeString(buf,this.valueStr);
     }
 

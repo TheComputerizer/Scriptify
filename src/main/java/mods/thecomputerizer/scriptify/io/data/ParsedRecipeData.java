@@ -22,7 +22,8 @@ public class ParsedRecipeData {
         this.args = new ArrayList<>();
         for(ParsedExpression expression : args)
             parseArg(this.args,expression);
-
+        if(!blueprint.verifyArgs(this.args))
+            throw new IllegalArgumentException("Parsed recipe data failed blueprint verification!");
     }
 
     private void parseArg(List<Object> args, ParsedExpression expression) {
@@ -80,9 +81,8 @@ public class ParsedRecipeData {
     }
 
     private void parseBEP(List<Object> args, ExpressionCallStatic expression) {
-        String type = expression.getType().getName();
+        String type = expression.getType().getName().toLowerCase();
         Function<Object,String> writer = IOUtils.getWriterFunc(type);
-        type = type.toLowerCase();
         BEP bep = IOUtils.parseBEP(writer.apply(((ExpressionCallStaticAccessor)expression).getArguments()));
         if(type.contains("item")) args.add(bep.asItem());
         else if(type.contains("liquid")) args.add(bep.asFluid());

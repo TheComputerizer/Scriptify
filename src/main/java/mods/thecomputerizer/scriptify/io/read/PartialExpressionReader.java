@@ -30,7 +30,6 @@ public class PartialExpressionReader implements IClampedStringReader<String> {
 
     @Override
     public void copy(List<String> lines) {
-        Scriptify.logDebug("Partial expression class is {}",this.expression.getClass().getName());
         if(this.expression instanceof ExpressionCallStatic) {
             ExpressionCallStaticAccessor access = (ExpressionCallStaticAccessor)this.expression;
             lines.add(IOUtils.getWriterFunc(this.expression.getType().getName()).apply(access.getArguments()));

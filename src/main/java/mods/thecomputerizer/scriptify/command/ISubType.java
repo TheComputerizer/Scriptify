@@ -1,12 +1,10 @@
 package mods.thecomputerizer.scriptify.command;
 
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.parameters.types.*;
-import mods.thecomputerizer.scriptify.command.subcmd.SubCmdHelp;
-import mods.thecomputerizer.scriptify.command.subcmd.SubCmdRecipe;
-import mods.thecomputerizer.scriptify.command.subcmd.SubCmdRun;
-import mods.thecomputerizer.scriptify.command.subcmd.SubCmdTest;
+import mods.thecomputerizer.scriptify.command.subcmd.*;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
@@ -28,19 +26,24 @@ public interface ISubType<T> {
     int isRequired();
     void send(ByteBuf buf);
 
+    @SuppressWarnings("SpellCheckingInspection")
     enum Type {
 
         COMMAND_HELP("help",SubCmdHelp::new),
         COMMAND_RECIPE("recipe",SubCmdRecipe::new),
+        COMMAND_RELOAD_CACHE("reloadcache",SubCmdReloadCache::new),
         COMMAND_RUN("run",SubCmdRun::new),
         COMMAND_TEST("test",SubCmdTest::new),
-        PARAMETER_CONTAINER_TYPE("containerType","point", ParameterContainerType::new),
-        PARAMETER_CONTAINER_SIZE("containerSize","9x3", ParameterContainerSize::new),
-        PARAMETER_MAX_LINE_WIDTH("maxLineWidth","80", ParameterLineWidth::new),
-        PARAMETER_NAME("name","name", ParameterName::new),
-        PARAMETER_OREDICT("oreDict","[]", ParameterOreDict::new),
-        PARAMETER_PARAMETERS("parameters","default", ParameterParameters::new),
-        PARAMETER_QUERY("query","help", ParameterParameters::new),
+        PARAMETER_COMMANDS("commands","[]",ParameterCommands::new),
+        PARAMETER_CONTAINER_TYPE("containerType","point",ParameterContainerType::new),
+        PARAMETER_CONTAINER_SIZE("containerSize","9x3",ParameterContainerSize::new),
+        PARAMETER_MAX_LINE_WIDTH("maxLineWidth","80",ParameterLineWidth::new),
+        PARAMETER_NAME("name","name",ParameterName::new),
+        PARAMETER_OREDICT("oreDict","[]",ParameterOreDict::new),
+        PARAMETER_PARAMETERS("parameters","default",ParameterParameters::new),
+        PARAMETER_QUERY("query","help",ParameterQuery::new),
+        PARAMETER_SAVE_COMMAND("saveCommand","null", ParameterSaveCommand::new),
+        PARAMETER_SAVE_PARAMETERS("saveParameters","null", ParameterSaveParameters::new),
         PARAMETER_TOTAL_SLOTS("totalSlots","27",ParameterTotalSlots::new),
         PARAMETER_TYPE("type","shaped",ParameterType::new),
         PARAMETER_ZEN_FILE_INPUT("zenFileInput","scripts/"+ScriptifyRef.NAME+"/inputs/input.zs",ParameterZenFileInput::new),
@@ -66,9 +69,16 @@ public interface ISubType<T> {
             return SUB_COMMANDS_BY_NAME.getOrDefault(name,COMMAND_HELP);
         }
 
+        public static boolean isCommand(String name) {
+            for(Type type : values())
+                if(type.name.matches(name))
+                    return type.isCmd;
+            return false;
+        }
+
         public final String name;
-        private final boolean isCmd;
-        private final String defVal;
+        @Getter private final boolean isCmd;
+        @Getter private final String defVal;
         private final Supplier<? extends ISubType<?>> typeSupplier;
 
         Type(String name, Supplier<? extends ISubType<?>> typeSupplier) {

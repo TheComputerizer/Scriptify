@@ -13,8 +13,8 @@ import javax.annotation.Nullable;
 public class SubCmdTest extends SubCmd {
 
     public SubCmdTest() {
-        super(Type.COMMAND_TEST,Type.PARAMETER_PARAMETERS,Type.PARAMETER_ZEN_FILE_INPUT,
-                Type.PARAMETER_ZEN_FILE_OUTPUT);
+        super(Type.COMMAND_TEST,Type.PARAMETER_PARAMETERS,Type.PARAMETER_TYPE,Type.PARAMETER_SAVE_PARAMETERS,
+                Type.PARAMETER_ZEN_FILE_INPUT,Type.PARAMETER_ZEN_FILE_OUTPUT);
     }
 
     @Override
@@ -25,10 +25,16 @@ public class SubCmdTest extends SubCmd {
     @Override
     public AbstractCommand execute(MinecraftServer server, ICommandSender sender) throws CommandException {
         defineParameterSets(server,sender);
-        String fileInput = ((String)getParameter(this.getType(),"zenFileInput").execute(server,sender)).trim().toLowerCase();
-        String fileOutput = ((String)getParameter(this.getType(),"zenFileOutput").execute(server,sender)).trim().toLowerCase();
-        new ZenFileReader(fileInput).testMove(fileOutput);
-        sendGeneric(sender,array("test","move","success"),fileInput,fileOutput);
+        String type = ((String)getParameter(this.getType(),"type").execute(server,sender));
+        String fileInput = ((String)getParameter(this.getType(),"zenFileInput").execute(server,sender)).toLowerCase();
+        if(type.matches("move")) {
+            String fileOutput = ((String) getParameter(this.getType(), "zenFileOutput").execute(server, sender)).toLowerCase();
+            new ZenFileReader(fileInput).testMove(fileOutput);
+            sendGeneric(sender,array("test","move","success"),fileInput,fileOutput);
+        } else if(type.matches("read")) {
+            new ZenFileReader(fileInput).tryParsingRecipeData();
+            sendGeneric(sender,array("test","read","success"),fileInput);
+        } else throwGeneric(array("test","fail"),type);
         return this;
     }
 

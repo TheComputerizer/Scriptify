@@ -3,10 +3,13 @@ package mods.thecomputerizer.scriptify.command.parameters;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
+import org.apache.commons.lang3.StringUtils;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class Parser {
 
@@ -44,18 +47,25 @@ public class Parser {
 
     public static <T> List<T> parseArray(MinecraftServer server, ICommandSender sender, Parameter<T> parameter,
                                          String val) throws CommandException {
+        List<T> list = new ArrayList<>();
         if(!val.startsWith("[") || !val.endsWith("]")) {
             parameter.setValueStr(val);
-            return Collections.singletonList(parameter.execute(server,sender));
+            addToList(list,parameter.execute(server,sender));
         }
-        String trimmed = val.trim().substring(1);
-        trimmed = trimmed.substring(0,trimmed.length()-1);
-        String[] split = trimmed.split(",");
-        List<T> genericList = new ArrayList<>();
-        for(String element : split) {
-            parameter.setValueStr(element);
-            genericList.add(parameter.execute(server,sender));
+        else {
+            String trimmed = val.trim().substring(1);
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+            String[] split = trimmed.split(",");
+            for(String element : split) {
+                parameter.setValueStr(element);
+                addToList(list,parameter.execute(server, sender));
+            }
         }
-        return genericList;
+        return list;
+    }
+
+    private static <T> void addToList(List<T> list, @Nullable T val) {
+        String str = Objects.nonNull(val) ? val.toString() : null;
+        if(StringUtils.isNotBlank(str)) list.add(val);
     }
 }

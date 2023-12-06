@@ -21,10 +21,24 @@ public class ScriptifyConfigHelper {
     private static final Map<String,String[]> CACHED_PARAMETER_SETS = new HashMap<>();
     public static final Map<String,CacheState> CACHE_STATE = initCache();
 
+    public static <T> void addToCache(String cacheType, String name, T value) {
+        Map<String,T> map = cacheType.trim().toLowerCase().matches("commands") ? (Map<String,T>)CACHED_COMMANDS :
+                (Map<String,T>)CACHED_PARAMETER_SETS;
+        queryCache(cacheType,map);
+        String adjustedName = name;
+        int counter = 1;
+        while(map.containsKey(adjustedName)) {
+            adjustedName = name+counter;
+            counter++;
+        }
+        map.put(adjustedName,value);
+        CACHE_STATE.computeIfPresent(cacheType,(key,state) -> state.writeCache(map));
+    }
+
+
     public static @Nullable String buildCommand(String type) {
         queryCache("commands",CACHED_COMMANDS);
         String command = CACHED_COMMANDS.get(type);
-        Scriptify.logInfo("Built command from {} is {}",type,command);
         if(Objects.isNull(command)) return null;
         if(!command.startsWith("/")) command = "/"+command;
         return command;
@@ -47,7 +61,7 @@ public class ScriptifyConfigHelper {
                         endOfSet = true;
                         line = line.substring(0,line.indexOf(">")).trim();
                     }
-                    if(!line.isEmpty()) parameters.add(line.trim());
+                    if(line.contains("=")) parameters.add(line.trim());
                     if(endOfSet && Objects.nonNull(setName)) {
                         map.put(setName,(T)parameters.toArray(new String[0]));
                         parameters.clear();
@@ -106,7 +120,6 @@ public class ScriptifyConfigHelper {
             if(!ret.isEmpty()) break;
         }
         if(ret.isEmpty()) ret = getDefaultParameter(name,ScriptifyConfig.PARAMETERS.defaultParameterValues);
-        Scriptify.logInfo("ret is {}",ret);
         return ret.contains("=") ? ret.split("=",2)[1] : ret;
     }
 
@@ -123,10 +136,8 @@ public class ScriptifyConfigHelper {
 
     private static Map<String,CacheState> initCache() {
         Map<String,CacheState> ret = new HashMap<>();
-        Scriptify.logInfo("INIT CACHE");
         ret.put("commands",new CacheState(ScriptifyConfigHelper::cacheFileMap,"Commands","commandBuilders"));
         ret.put("parameters",new CacheState(ScriptifyConfigHelper::cacheFileArrays,"Parameters","parameters"));
-        Scriptify.logInfo("CACHE HAS {} ELEMENTS",ret.size());
         return ret;
     }
 
@@ -140,10 +151,7 @@ public class ScriptifyConfigHelper {
 
     public static void queryCache(String type, Map<String,?> cacheMap) {
         CacheState state = CACHE_STATE.get(type);
-        if(Objects.nonNull(state)) {
-            Scriptify.logInfo(state.configFileFields.getFirst().getName());
-            state.applyConsumer(cacheMap);
-        }
+        if(Objects.nonNull(state)) state.applyConsumer(cacheMap);
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -226,6 +234,32 @@ public class ScriptifyConfigHelper {
 
         private void resetCache() {
             this.state.set(true);
+        }
+
+        private <T> CacheState writeCache(Map<String,T> cacheMap) {
+            if(Objects.isNull(this.cachedFile) || !this.cachedFile.exists()) {
+                Scriptify.logError("Cannot write cache to null or nonexistant file {}!",this.cachedFile);
+                return this;
+            }
+            List<String> lines = new ArrayList<>();
+            List<String> names = new ArrayList<>(cacheMap.keySet());
+            Collections.sort(names);
+            for(String name : names) writeGeneric(lines,name,cacheMap.get(name));
+            if(!lines.isEmpty()) lines.remove(lines.size()-1);
+            FileUtil.writeLinesToFile(this.cachedFile,lines,false);
+            this.state.set(true);
+            return this;
+        }
+
+        private <T> void writeGeneric(List<String> lines, String name, T generic) {
+            if(generic instanceof String[]) {
+                lines.add(name+" <");
+                List<String> valList = new ArrayList<>(Arrays.asList((String[])generic));
+                Collections.sort(valList);
+                for(String element : valList) lines.add("\t"+element);
+                lines.add(">");
+            } else lines.add(name+" = "+generic.toString());
+            lines.add("");
         }
     }
 }

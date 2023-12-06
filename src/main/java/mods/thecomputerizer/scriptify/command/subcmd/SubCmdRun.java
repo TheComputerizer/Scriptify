@@ -7,14 +7,16 @@ import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
+import java.util.List;
 
+@SuppressWarnings("unchecked")
 public class SubCmdRun extends SubCmd {
 
     public SubCmdRun() {
-        super(Type.COMMAND_RUN,Type.PARAMETER_TYPE);
+        super(Type.COMMAND_RUN,Type.PARAMETER_COMMANDS);
     }
 
     @Override
@@ -24,11 +26,15 @@ public class SubCmdRun extends SubCmd {
 
     @Override
     public AbstractCommand execute(MinecraftServer server, ICommandSender sender) throws CommandException {
-        String command = ScriptifyConfigHelper.buildCommand((String)getParameter(this.getType(),"type").execute(server,sender));
-        if(Objects.nonNull(command)) {
-            server.commandManager.executeCommand(sender,command);
-            sendSuccess(sender,command);
-        } else throwGeneric(array(getName(),"fail"));
+        List<String> commandNames = (List<String>)getParameter(this.getType(),"commands").execute(server,sender);
+        if(commandNames.isEmpty()) throwGeneric(array(getName(),"empty"));
+        for(String commandName : commandNames) {
+            String command = ScriptifyConfigHelper.buildCommand(commandName);
+            if(StringUtils.isNotBlank(command)) {
+                server.commandManager.executeCommand(sender, command);
+                sendSuccess(sender, command);
+            } else throwGeneric(array(getName(), "fail"),commandName);
+        }
         return this;
     }
 
