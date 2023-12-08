@@ -1,11 +1,10 @@
 package mods.thecomputerizer.scriptify.command.parameters.types;
 
-import mods.thecomputerizer.scriptify.command.parameters.common.ParameterArray;
-import mods.thecomputerizer.scriptify.command.parameters.common.ParameterInt;
+import mods.thecomputerizer.scriptify.command.parameters.common.ParameterIntArray;
 
-public class ParameterOreDict extends ParameterArray<Integer,ParameterInt> {
+public class ParameterOreDict extends ParameterIntArray {
 
     public ParameterOreDict() {
-        super(Type.PARAMETER_OREDICT,ParameterInt::new);
+        super(Type.PARAMETER_OREDICT);
     }
 }

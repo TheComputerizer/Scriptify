@@ -1,14 +1,14 @@
 package mods.thecomputerizer.scriptify.command.parameters.types;
 
-import mods.thecomputerizer.scriptify.command.parameters.common.ParameterArray;
-import mods.thecomputerizer.scriptify.command.parameters.common.ParameterString;
+import mods.thecomputerizer.scriptify.command.parameters.common.ParameterStringArray;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class ParameterQuery extends ParameterArray<String,ParameterString> {
+public class ParameterQuery extends ParameterStringArray {
 
     public ParameterQuery() {
-        super(Type.PARAMETER_QUERY,ParameterString::new);
+        super(Type.PARAMETER_QUERY);
     }
 
     @Override

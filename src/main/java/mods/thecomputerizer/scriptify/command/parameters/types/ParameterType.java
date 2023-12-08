@@ -2,7 +2,7 @@ package mods.thecomputerizer.scriptify.command.parameters.types;
 
 import mods.thecomputerizer.scriptify.command.parameters.common.ParameterString;
 import mods.thecomputerizer.scriptify.command.subcmd.SubCmdHelp;
-import mods.thecomputerizer.scriptify.io.IOUtils;
+import mods.thecomputerizer.scriptify.util.IOUtils;
 
 import java.util.Collections;
 import java.util.List;

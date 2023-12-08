@@ -1,6 +1,6 @@
 package mods.thecomputerizer.scriptify.io.read;
 
-import mods.thecomputerizer.scriptify.io.IOUtils;
+import mods.thecomputerizer.scriptify.util.IOUtils;
 import mods.thecomputerizer.scriptify.mixin.access.*;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import stanhebben.zenscript.parser.expression.*;
@@ -10,7 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class ParsedExpressionReader implements IClampedStringReader<String> {
+public class ParsedExpressionReader implements FileReader<String> {
 
     /**
      * Copies the input expression into the input list of strings. Returns a list of required imports.

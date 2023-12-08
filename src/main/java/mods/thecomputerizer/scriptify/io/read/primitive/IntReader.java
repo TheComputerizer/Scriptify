@@ -1,10 +1,10 @@
 package mods.thecomputerizer.scriptify.io.read.primitive;
 
-import mods.thecomputerizer.scriptify.io.read.IClampedStringReader;
+import mods.thecomputerizer.scriptify.io.read.FileReader;
 
 import java.util.List;
 
-public class IntReader implements IClampedStringReader<Integer> {
+public class IntReader implements FileReader<Integer> {
 
     @Override
     public void copy(List<String> lines) {

@@ -1,20 +1,17 @@
 package mods.thecomputerizer.scriptify.command.subcmd;
 
-import mods.thecomputerizer.scriptify.command.AbstractCommand;
 import mods.thecomputerizer.scriptify.io.read.ZenFileReader;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
+import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import net.minecraft.command.CommandException;
-import net.minecraft.command.ICommandSender;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.server.MinecraftServer;
 
-import javax.annotation.Nullable;
+import java.util.List;
 
 public class SubCmdTest extends SubCmd {
 
     public SubCmdTest() {
         super(Type.COMMAND_TEST,Type.PARAMETER_PARAMETERS,Type.PARAMETER_TYPE,Type.PARAMETER_SAVE_PARAMETERS,
-                Type.PARAMETER_ZEN_FILE_INPUT,Type.PARAMETER_ZEN_FILE_OUTPUT);
+                Type.PARAMETER_ZEN_FILE_INPUTS,Type.PARAMETER_ZEN_FILE_OUTPUTS);
     }
 
     @Override
@@ -23,25 +20,26 @@ public class SubCmdTest extends SubCmd {
     }
 
     @Override
-    public AbstractCommand execute(MinecraftServer server, ICommandSender sender) throws CommandException {
-        defineParameterSets(server,sender);
-        String type = ((String)getParameter(this.getType(),"type").execute(server,sender));
-        String fileInput = ((String)getParameter(this.getType(),"zenFileInput").execute(server,sender)).toLowerCase();
+    public void execute() throws CommandException {
+        defineParameterSets();
+        String type = getParameterAsString("type");
+        List<String> inputFilePaths = getParameterAsFileList("zenFileInput");
         if(type.matches("move")) {
-            String fileOutput = ((String) getParameter(this.getType(), "zenFileOutput").execute(server, sender)).toLowerCase();
-            new ZenFileReader(fileInput).testMove(fileOutput);
-            sendGeneric(sender,array("test","move","success"),fileInput,fileOutput);
+            List<String> outputFilePaths = getParameterAsFileList("zenFileOutput");
+            if(!inputFilePaths.isEmpty() && !outputFilePaths.isEmpty()) {
+                String from = inputFilePaths.get(0);
+                String to = outputFilePaths.get(0);
+                new ZenFileReader(from).testMove(to);
+                sendGeneric(sender,array("test","move","success"),from,to);
+            }
         } else if(type.matches("read")) {
-            new ZenFileReader(fileInput).tryParsingRecipeData();
-            sendGeneric(sender,array("test","read","success"),fileInput);
+            for(String path : inputFilePaths) new ZenFileReader(path).tryParsingRecipeData();
+            sendGeneric(sender,array("test","read","success"),TextUtil.listToString(inputFilePaths,","));
         } else throwGeneric(array("test","fail"),type);
-        return this;
     }
 
     @Override
-    protected void executeOnPacket(MinecraftServer server, @Nullable EntityPlayerMP player, PacketSendContainerInfo packet) {
-
-    }
+    protected void executeOnPacket(PacketSendContainerInfo packet) {}
 
     @Override
     protected boolean hasParameters() {

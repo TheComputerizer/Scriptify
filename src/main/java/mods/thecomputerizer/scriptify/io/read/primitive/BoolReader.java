@@ -1,10 +1,10 @@
 package mods.thecomputerizer.scriptify.io.read.primitive;
 
-import mods.thecomputerizer.scriptify.io.read.IClampedStringReader;
+import mods.thecomputerizer.scriptify.io.read.FileReader;
 
 import java.util.List;
 
-public class BoolReader implements IClampedStringReader<Boolean> {
+public class BoolReader implements FileReader<Boolean> {
 
     @Override
     public void copy(List<String> lines) {

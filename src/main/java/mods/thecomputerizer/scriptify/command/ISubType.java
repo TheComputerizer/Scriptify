@@ -6,8 +6,6 @@ import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.command.parameters.types.*;
 import mods.thecomputerizer.scriptify.command.subcmd.*;
 import net.minecraft.command.CommandException;
-import net.minecraft.command.ICommandSender;
-import net.minecraft.server.MinecraftServer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,7 +16,6 @@ import java.util.function.Supplier;
 public interface ISubType<T> {
 
     ISubType<T> collect(String ... args) throws CommandException;
-    T execute(MinecraftServer server, ICommandSender sender) throws CommandException;
     String getLang(String ... args);
     String getName();
     List<String> getTabCompletions(String ... args);
@@ -29,25 +26,31 @@ public interface ISubType<T> {
     @SuppressWarnings("SpellCheckingInspection")
     enum Type {
 
+        COMMAND_COPY("copy",SubCmdCopy::new),
         COMMAND_HELP("help",SubCmdHelp::new),
         COMMAND_RECIPE("recipe",SubCmdRecipe::new),
         COMMAND_RELOAD_CACHE("reloadcache",SubCmdReloadCache::new),
         COMMAND_RUN("run",SubCmdRun::new),
         COMMAND_TEST("test",SubCmdTest::new),
+        PARAMETER_CLASS_NAMES("classNames","recipes",ParameterClassNames::new),
         PARAMETER_COMMANDS("commands","[]",ParameterCommands::new),
         PARAMETER_CONTAINER_TYPE("containerType","point",ParameterContainerType::new),
         PARAMETER_CONTAINER_SIZE("containerSize","9x3",ParameterContainerSize::new),
+        PARAMETER_ENHANCEMENTS("enhancements","[]",ParameterEnhancements::new),
+        PARAMETER_FILTERS("filters","[]",ParameterFilters::new),
         PARAMETER_MAX_LINE_WIDTH("maxLineWidth","80",ParameterLineWidth::new),
+        PARAMETER_METHOD_NAMES("methodNames","[addShaped,addShapeless]",ParameterMethodNames::new),
         PARAMETER_NAME("name","name",ParameterName::new),
         PARAMETER_OREDICT("oreDict","[]",ParameterOreDict::new),
+        PARAMETER_SORT_BY("sortBy","class", ParameterSortBy::new),
         PARAMETER_PARAMETERS("parameters","default",ParameterParameters::new),
         PARAMETER_QUERY("query","help",ParameterQuery::new),
         PARAMETER_SAVE_COMMAND("saveCommand","null", ParameterSaveCommand::new),
         PARAMETER_SAVE_PARAMETERS("saveParameters","null", ParameterSaveParameters::new),
         PARAMETER_TOTAL_SLOTS("totalSlots","27",ParameterTotalSlots::new),
         PARAMETER_TYPE("type","shaped",ParameterType::new),
-        PARAMETER_ZEN_FILE_INPUT("zenFileInput","scripts/"+ScriptifyRef.NAME+"/inputs/input.zs",ParameterZenFileInput::new),
-        PARAMETER_ZEN_FILE_OUTPUT("zenFileOutput","config/"+ ScriptifyRef.NAME+"/outputs/output.zs",ParameterZenFileOutput::new);
+        PARAMETER_ZEN_FILE_INPUTS("zenFileInput","scripts/"+ScriptifyRef.NAME+"/inputs/input.zs",ParameterZenFileInput::new),
+        PARAMETER_ZEN_FILE_OUTPUTS("zenFileOutput","config/"+ ScriptifyRef.NAME+"/outputs/output.zs",ParameterZenFileOutput::new);
 
         private static final Map<String, Type> PARAMETERS_BY_NAME = new HashMap<>();
         private static final Map<String, Type> SUB_COMMANDS_BY_NAME = new HashMap<>();

@@ -5,7 +5,6 @@ import mods.thecomputerizer.scriptify.command.subcmd.SubCmd;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
-import net.minecraft.util.text.TextComponentTranslation;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -56,7 +55,7 @@ public abstract class AbstractCommand {
     }
 
     protected String lang(String ... args) {
-        return Scriptify.langKey("commands",args);
+        return Scriptify.makeLangKey("commands",args);
     }
 
     protected String[] nextArgs(String ... args) {
@@ -64,7 +63,7 @@ public abstract class AbstractCommand {
     }
 
     protected void sendGeneric(ICommandSender sender, String[] args, Object ... parameters) {
-        sender.sendMessage(new TextComponentTranslation(lang(args),parameters));
+        sender.sendMessage(Scriptify.getText(lang(args),true,parameters));
     }
 
     protected void sendSuccess(ICommandSender sender, Object ... parameters) {

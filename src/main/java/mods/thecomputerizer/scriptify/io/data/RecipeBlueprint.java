@@ -2,10 +2,14 @@ package mods.thecomputerizer.scriptify.io.data;
 
 import crafttweaker.api.item.IIngredient;
 import crafttweaker.mc1120.oredict.MCOreDictEntry;
+import lombok.Getter;
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.io.IOUtils;
+import mods.thecomputerizer.scriptify.io.write.FileWriter;
+import mods.thecomputerizer.scriptify.io.write.MethodWriter;
+import mods.thecomputerizer.scriptify.util.Misc;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 
@@ -36,22 +40,25 @@ public class RecipeBlueprint {
         return false;
     }
 
-    private final String className;
-    private final String methodName;
+    @Getter private final String mod;
+    @Getter private final String className;
+    @Getter private final String methodName;
     private final DynamicArray[] parameterTypes;
 
-    public RecipeBlueprint(String className, String methodName, String ... parameterTypeAliases) {
+    public RecipeBlueprint(String mod, String className, String methodName, String ... parameterTypeAliases) {
+        this.mod = mod;
         this.className = className;
         this.methodName = methodName;
         this.parameterTypes = parseParameterTypes(parameterTypeAliases);
     }
 
-    private DynamicArray[] parseParameterTypes(String ... parameterTypeAliases) {
-        DynamicArray[] types = new DynamicArray[parameterTypeAliases.length];
-        for(int i=0; i<parameterTypeAliases.length; i++)
-            types[i] = new DynamicArray(parameterTypeAliases[i]);
-        return types;
+    public String getFirstTypeSimpleName() {
+        if(this.parameterTypes.length==0) return "empty";
+        DynamicArray type = this.parameterTypes[0];
+        return type.getTypeClass().getSimpleName()+StringUtils.repeat("[",type.getBracketCount())+
+                StringUtils.repeat("]",type.getBracketCount());
     }
+
 
     public boolean matches(String simpleClass, String otherMethod) {
         if(this.methodName.matches(otherMethod)) {
@@ -59,6 +66,13 @@ public class RecipeBlueprint {
             return simpleClass.matches(splitClass[splitClass.length-1]);
         }
         return false;
+    }
+
+    private DynamicArray[] parseParameterTypes(String ... parameterTypeAliases) {
+        DynamicArray[] types = new DynamicArray[parameterTypeAliases.length];
+        for(int i=0; i<parameterTypeAliases.length; i++)
+            types[i] = new DynamicArray(parameterTypeAliases[i]);
+        return types;
     }
 
     @Override
@@ -69,26 +83,30 @@ public class RecipeBlueprint {
     public boolean verifyArgs(List<Object> args) {
         for(int i=0; i<this.parameterTypes.length; i++) {
             Object arg = args.get(i);
-            if(arg instanceof List<?>) arg = IOUtils.listToArray((List<?>)arg);
+            if(arg instanceof List<?>) arg = Misc.listToArray((List<?>)arg);
             DynamicArray parameter = this.parameterTypes[i];
             if(!parameter.isValid(arg)) {
-                Scriptify.logError("Argument at index {} of type {} did not match the expected blueprint of {}!",i,
-                        arg.getClass().getName(),parameter.getTypeClass().getName());
+                Scriptify.logError(getClass(),null,null,i,arg.getClass().getName(),parameter.getTypeClass().getName());
                 return false;
-            } else
-                Scriptify.logDebug("Successfully verified argument of class {} against parameter of class {}",
-                        arg.getClass().getName(),parameter.getTypeClass().getName());
+            }
         }
-        Scriptify.logDebug("Recipe has been sucessfully verified!");
+        Scriptify.logDebug(getClass());
         return true;
     }
 
-    public String write(Object ... args) {
-        StringBuilder builder = new StringBuilder(this.className+"."+this.methodName+"(");
-        for(int i=0; i<args.length; i++) {
-            //builder.append(IOUtils.getWriterFunc(this.args[i].getSimpleName()).apply(args[i]));
-            if(i+1<args.length) builder.append(",");
+    public FileWriter makeWriter(Object ... args) {
+        return makeWriter(Arrays.asList(args));
+    }
+
+    public FileWriter makeWriter(Collection<Object> args) {
+        MethodWriter writer = new MethodWriter(0);
+        writer.setClassName(this.className);
+        writer.setMethodName(this.methodName);
+        int i = 0;
+        for(Object arg : args) {
+            writer.addWriter(this.parameterTypes[i].makeWriter(arg));
+            i++;
         }
-        return builder.append(")").toString();
+        return writer;
     }
 }

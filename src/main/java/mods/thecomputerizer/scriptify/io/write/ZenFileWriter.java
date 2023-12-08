@@ -1,26 +1,31 @@
 package mods.thecomputerizer.scriptify.io.write;
 
+import lombok.Getter;
+import lombok.Setter;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 
 import java.util.*;
 
-public class ZenFileWriter extends CommentedWriter {
+public class ZenFileWriter extends FileWriter {
 
     private List<String> preProcessors;
     private List<String> imports;
-    private final Set<IClampedStringWriter> entries;
+    @Getter private final Set<FileWriter> writers;
+    @Setter private boolean debug;
 
-    public ZenFileWriter(IClampedStringWriter ... entries) {
+    public ZenFileWriter(FileWriter... entries) {
+        super(0);
         this.preProcessors = new ArrayList<>();
         this.imports = new ArrayList<>();
-        this.entries = new HashSet<>();
-        this.entries.addAll(Arrays.asList(entries));
+        this.writers = new HashSet<>();
+        this.writers.addAll(Arrays.asList(entries));
     }
 
-    public ZenFileWriter(Collection<IClampedStringWriter> entries) {
+    public ZenFileWriter(Collection<FileWriter> entries) {
+        super(0);
         this.preProcessors = new ArrayList<>();
         this.imports = new ArrayList<>();
-        this.entries = new HashSet<>(entries);
+        this.writers = new HashSet<>(entries);
     }
 
     public void addImport(String className) {
@@ -40,30 +45,25 @@ public class ZenFileWriter extends CommentedWriter {
     }
 
     @Override
-    public List<String> getClampedLines() {
-        List<String> entryStrings = new ArrayList<>();
-        List<String> comments = getComments();
-        if(!comments.isEmpty()) {
-            for(String comment : comments) entryStrings.add("//" + comment);
-            entryStrings.add("");
-        }
+    public void writeLines(List<String> lines) {
+        writeComments(lines);
         if(!this.preProcessors.isEmpty()) {
-            for(String processor : this.preProcessors) entryStrings.add("#"+processor);
-            entryStrings.add("");
+            for(String processor : this.preProcessors) lines.add("#"+processor);
+            lines.add("");
         }
         if(!this.imports.isEmpty()) {
-            for(String className : this.imports) entryStrings.add("import "+className+";");
-            entryStrings.add("");
+            for(String className : this.imports) lines.add("import "+className+";");
+            lines.add("");
         }
-        for(IClampedStringWriter entry : this.entries) {
-            for(String comment : entry.getComments()) entryStrings.add("//"+comment);
-            entryStrings.add(entry.toString());
-            entryStrings.add("");
+        for(FileWriter writer : this.writers) {
+            writer.writeLines(lines);
+            lines.add("");
         }
-        return entryStrings;
     }
 
     public void write(String filePath, boolean overwrite) {
-        FileUtil.writeLinesToFile(filePath, getClampedLines(),!overwrite);
+        List<String> lines = new ArrayList<>();
+        writeLines(lines);
+        FileUtil.writeLinesToFile(filePath,lines,!overwrite);
     }
 }

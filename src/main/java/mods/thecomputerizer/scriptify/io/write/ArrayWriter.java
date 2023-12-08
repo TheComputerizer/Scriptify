@@ -1,26 +1,72 @@
 package mods.thecomputerizer.scriptify.io.write;
 
+import lombok.Setter;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
+import org.apache.commons.lang3.StringUtils;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.BiFunction;
 
-public class ArrayWriter<A extends IClampedStringWriter> extends CommentedWriter {
+public class ArrayWriter<E> extends ClampedWriter<E> {
 
-    private final A[] entries;
+    @Setter private String name;
+    @Setter private boolean isVertical;
+    private int level;
 
-    @SafeVarargs
-    public ArrayWriter(A ... entries) {
-        this.entries = entries;
+    public ArrayWriter(int tabLevel) {
+        super(tabLevel);
+        this.level = 1;
     }
 
     @Override
-    public List<String> getClampedLines() {
-        return Collections.singletonList(this.toString());
+    protected String getStart(String first) {
+        return (Objects.nonNull(this.name) ? this.name+" = " : "")+first;
+    }
+
+    private int incrementLevel(ArrayWriter<?> writer, int level) {
+        int max = level;
+        for(FileWriter element : writer.writers) {
+            if(element instanceof ArrayWriter<?>) {
+                writer.setVertical(true);
+                max = Math.max(max,incrementLevel((ArrayWriter<?>)element,level)+1);
+            }
+        }
+        return max;
+    }
+
+    protected boolean isNamed() {
+        return Objects.nonNull(this.name);
+    }
+
+    @Override
+    public void setElements(E[] elements, BiFunction<ClampedWriter<E>,E,FileWriter> writerFunc) {
+        super.setElements(elements,writerFunc);
+        this.level = incrementLevel(this,1);
     }
 
     @Override
     public String toString() {
-        return "["+TextUtil.arrayToString(",",(Object[])this.entries)+"]";
+        return this.writers.size()==0 ? StringUtils.repeat("[",this.level)+StringUtils.repeat("]",this.level) :
+                getStart("[ ")+TextUtil.arrayToString(",",(Object[])this.writers.toArray())+getEnd("]");
+    }
+
+    @Override
+    public void writeLines(List<String> lines) {
+        if(this.writers.size()==0) tryAppend(lines,getStart(this.toString()),true);
+        else {
+            if(this.isVertical) {
+                tryAppend(lines,getStart("[ "), true);
+                writeBasic(lines);
+                tryAppend(lines,getEnd("]"),true);
+            } else {
+                List<String> subLines = new ArrayList<>();
+                tryAppend(subLines,getStart("[ "), true);
+                writeBasic(subLines);
+                tryAppend(subLines,getEnd("]"),true);
+                lines.add(TextUtil.listToString(subLines,","));
+            }
+        }
     }
 }

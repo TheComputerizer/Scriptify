@@ -1,18 +1,13 @@
 package mods.thecomputerizer.scriptify.command.subcmd;
 
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.command.AbstractCommand;
 import mods.thecomputerizer.scriptify.command.ISubType;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import net.minecraft.command.CommandException;
-import net.minecraft.command.ICommandSender;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,21 +26,19 @@ public class SubCmdHelp extends SubCmd {
                 Type.PARAMETER_TYPE);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public AbstractCommand execute(MinecraftServer server, ICommandSender sender) throws CommandException {
-        defineParameterSets(server,sender);
-        List<String> queries = ((List<String>)getParameter(this.getType(),"query").execute(server,sender));
+    public void execute() throws CommandException {
+        defineParameterSets();
+        List<String> queries = getParameterAsList("query");
         queries.removeIf(StringUtils::isBlank);
         if(!queries.isEmpty()) {
             for(String query : queries) {
                 String category = Type.isCommand(query) ? "commands" : "parameters";
-                String type = ((String)getParameter(this.getType(),"type").execute(server,sender)).toLowerCase();
-                String lang = Scriptify.langKey(category,query,type);
+                String type = getParameterAsString("type").toLowerCase();
+                String lang = Scriptify.makeLangKey(category,query,type);
                 sender.sendMessage(new TextComponentTranslation(lang,getTypeString()));
             }
         } else throwGeneric(array(getName(),"fail"),TextUtil.listToString(queries,","));
-        return this;
     }
 
     private String getTypeString() {
@@ -65,5 +58,5 @@ public class SubCmdHelp extends SubCmd {
     }
 
     @Override
-    protected void executeOnPacket(MinecraftServer server, @Nullable EntityPlayerMP player, PacketSendContainerInfo packet) {}
+    protected void executeOnPacket(PacketSendContainerInfo packet) {}
 }

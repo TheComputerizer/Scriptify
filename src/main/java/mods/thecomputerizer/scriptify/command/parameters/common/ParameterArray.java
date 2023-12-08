@@ -3,20 +3,74 @@ package mods.thecomputerizer.scriptify.command.parameters.common;
 import mods.thecomputerizer.scriptify.command.parameters.Parameter;
 import mods.thecomputerizer.scriptify.command.parameters.Parser;
 import net.minecraft.command.CommandException;
-import net.minecraft.command.ICommandSender;
-import net.minecraft.server.MinecraftServer;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
-public class ParameterArray<T,P extends Parameter<T>> extends Parameter<List<T>> {
+public abstract class ParameterArray<T,P extends Parameter<T>> extends Parameter<List<T>> {
 
     private final P elementReference;
 
-    public ParameterArray(Type type, Function<Type,P> referenceCreator) {
+    protected ParameterArray(Type type, Function<Type,P> referenceCreator) {
         super(type);
         this.elementReference = referenceCreator.apply(type);
+    }
+
+    @Override
+    public byte getAsByte() throws CommandException {
+        return getAsNumber().byteValue();
+    }
+
+    @Override
+    public boolean getAsBool() throws CommandException {
+        return Boolean.parseBoolean(getAsString());
+    }
+
+    @Override
+    public double getAsDouble() throws CommandException {
+        return getAsNumber().doubleValue();
+    }
+
+    @Override
+    public float getAsFloat() throws CommandException {
+        return getAsNumber().floatValue();
+    }
+
+    @Override
+    public int getAsInt() throws CommandException {
+        return getAsNumber().intValue();
+    }
+
+    @Override
+    public long getAsLong() throws CommandException {
+        return getAsNumber().longValue();
+    }
+
+    @Override
+    public Number getAsNumber() throws CommandException {
+        List<P> list = getAsList();
+        return list.isEmpty() ? 0 : list.get(0).getAsNumber();
+    }
+
+    @Override
+    public short getAsShort() throws CommandException {
+        return getAsNumber().shortValue();
+    }
+
+    @Override
+    public String getAsString() throws CommandException {
+        List<T> list = parse();
+        if(Objects.isNull(list) || list.isEmpty()) return "";
+        Object element = list.get(0);
+        return Objects.nonNull(element) ? element.toString() : "";
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <E> List<E> getAsList() throws CommandException {
+        return (List<E>)parse();
     }
 
     @Override
@@ -30,7 +84,7 @@ public class ParameterArray<T,P extends Parameter<T>> extends Parameter<List<T>>
     }
 
     @Override
-    protected List<T> parse(MinecraftServer server, ICommandSender sender, String valueStr) throws CommandException {
-        return Parser.parseArray(server,sender,this.elementReference,valueStr);
+    protected List<T> parse(String valueStr) throws CommandException {
+        return Parser.parseArray(this.elementReference,valueStr);
     }
 }

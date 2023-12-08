@@ -1,7 +1,14 @@
+commands.scriptify.copy.desc=Sub Command {copy}: Used to copy, transform, organize, and enchance scripts
+commands.scriptify.copy.data=No data recipe data was parsed!
+commands.scriptify.copy.input=No input files were specified!
+commands.scriptify.copy.output=No output file or folder was specified!
+commands.scriptify.copy.sub=Sub Command {copy}: Accepted parameters: [ %1$s ]
+commands.scriptify.copy.write=Wrote %1$s sorted recipe type(s) to `%2$s`
 commands.scriptify.desc=Parent command
 commands.scriptify.help.desc=Sub Command {help}: Used to query information about subcommands and parameters
 commands.scriptify.help.fail=Failed to query missing or unknown types from `%1$s`!
 commands.scriptify.help.sub=Sub Command {help}: Accepted parameters: [ %1$s ]
+commands.scriptify.null=Cannot get value for null parameter `%1$s`!
 commands.scriptify.recipe.fail=Failed to write recipe data with type `%1$s` to %2$s
 commands.scriptify.recipe.desc=Sub Command {recipe}: Used to convert in world data into runnable scripts for adding, removing, or modifying various recipe type
 commands.scriptify.recipe.sub=Sub Command {recipe}: Accepted parameters: [ %1$s ]

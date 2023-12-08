@@ -1,14 +1,7 @@
 package mods.thecomputerizer.scriptify.command.subcmd;
 
-import mods.thecomputerizer.scriptify.command.AbstractCommand;
 import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
-import net.minecraft.command.CommandException;
-import net.minecraft.command.ICommandSender;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.server.MinecraftServer;
-
-import javax.annotation.Nullable;
 
 public class SubCmdReloadCache extends SubCmd {
 
@@ -17,20 +10,17 @@ public class SubCmdReloadCache extends SubCmd {
     }
 
     @Override
-    public AbstractCommand execute(MinecraftServer server, ICommandSender sender) throws CommandException {
+    public void execute() {
         ScriptifyConfigHelper.onConfigReloaded();
         sendGeneric(sender,array(this.getName(),"success"));
-        return this;
     }
 
     @Override
-    protected void executeOnPacket(MinecraftServer server, @Nullable EntityPlayerMP player, PacketSendContainerInfo packet) {
-
-    }
+    protected void executeOnPacket(PacketSendContainerInfo packet) {}
 
     @Override
     protected boolean hasParameters() {
-        return false;
+        return true;
     }
 
     @Override

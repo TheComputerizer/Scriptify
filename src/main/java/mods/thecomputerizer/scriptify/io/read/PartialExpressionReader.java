@@ -1,7 +1,7 @@
 package mods.thecomputerizer.scriptify.io.read;
 
-import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.io.IOUtils;
+import mods.thecomputerizer.scriptify.io.write.FileWriter;
+import mods.thecomputerizer.scriptify.util.IOUtils;
 import mods.thecomputerizer.scriptify.mixin.access.ExpressionCallStaticAccessor;
 import mods.thecomputerizer.scriptify.mixin.access.ExpressionIntAccessor;
 import mods.thecomputerizer.scriptify.mixin.access.ExpressionStringAccessor;
@@ -14,7 +14,7 @@ import stanhebben.zenscript.expression.partial.IPartialExpression;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PartialExpressionReader implements IClampedStringReader<String> {
+public class PartialExpressionReader implements FileReader<String> {
 
     private final IPartialExpression expression;
     private final boolean isMapVal;
@@ -32,7 +32,8 @@ public class PartialExpressionReader implements IClampedStringReader<String> {
     public void copy(List<String> lines) {
         if(this.expression instanceof ExpressionCallStatic) {
             ExpressionCallStaticAccessor access = (ExpressionCallStaticAccessor)this.expression;
-            lines.add(IOUtils.getWriterFunc(this.expression.getType().getName()).apply(access.getArguments()));
+            FileWriter writer = IOUtils.getWriterFunc(this.expression.getType().getName()).apply(access.getArguments());
+            writer.writeLines(lines);
         }
         else if(this.expression instanceof ExpressionInt)
             lines.add(String.valueOf(((ExpressionIntAccessor)this.expression).getValue()));

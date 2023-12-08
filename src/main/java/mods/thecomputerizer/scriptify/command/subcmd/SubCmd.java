@@ -9,6 +9,7 @@ import mods.thecomputerizer.scriptify.command.ISubType;
 import mods.thecomputerizer.scriptify.command.parameters.Parameter;
 import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
+import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.util.NetworkUtil;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -33,6 +34,8 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
     private SubCmd nextSubCmd;
     private Map<String,Parameter<?>> parameters;
     protected Collection<String> parameterSets;
+    protected MinecraftServer server;
+    protected ICommandSender sender;
 
     public SubCmd(Type type, Type ... subTypes) {
         super(subTypes);
@@ -47,16 +50,25 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
             }
         }
         this.canSaveParameters = checkSave;
+        this.server = null;
+        this.sender = null;
     }
 
-    public void afterExecute(MinecraftServer server, ICommandSender sender, @Nullable SubCmd parent) {
+    public final void afterExecute(@Nullable SubCmd parent) {
         if(Objects.isNull(parent)) parent = this;
-        if(Objects.nonNull(this.nextSubCmd)) this.nextSubCmd.afterExecute(server,sender,parent);
+        if(Objects.nonNull(this.nextSubCmd)) this.nextSubCmd.afterExecute(parent);
         else {
-            saveParameters(server,sender);
-            saveCommand(server,sender,parent);
+            saveParameters();
+            saveCommand(parent);
         }
+        afterExecute();
+        setWorkingParameters(null,null);
     }
+
+    /**
+     * Extendable version since the other one needs to be run
+     */
+    protected void afterExecute() {}
 
     private void appendSubCmd(StringBuilder builder, SubCmd command) {
         builder.append(command.getName());
@@ -91,33 +103,30 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
         return null;
     }
 
-    @SuppressWarnings("unchecked")
-    protected void defineParameterSets(MinecraftServer server, ICommandSender sender) {
+    protected void defineParameterSets() {
         if(Objects.isNull(this.parameterSets)) {
             Parameter<?> parameter = this.parameters.get("parameters");
             if(Objects.isNull(parameter)) this.parameterSets = Collections.emptyList();
             else {
                 try {
-                    this.parameterSets = (List<String>)parameter.execute(server,sender);
+                    this.parameterSets = parameter.getAsList();
                 } catch(CommandException ex) {
-                    Scriptify.logError("Failed to parse parameter sets!",ex);
+                    Scriptify.logError(getClass(),"parameters",ex);
                 }
             }
         }
     }
 
-    @Override
-    public AbstractCommand execute(MinecraftServer server, ICommandSender sender) throws CommandException {
-        if(Objects.nonNull(this.nextSubCmd)) this.nextSubCmd.execute(server,sender);
+    public void execute() throws CommandException {
+        if(Objects.nonNull(this.nextSubCmd)) this.nextSubCmd.execute();
         else throwGeneric(array("execute"));
-        return this;
     }
 
-    protected abstract void executeOnPacket(MinecraftServer server, @Nullable EntityPlayerMP player, PacketSendContainerInfo packet);
+    protected abstract void executeOnPacket(PacketSendContainerInfo packet);
 
     @Override
     public String getLang(String ... args) {
-        return Scriptify.langKey("commands",args);
+        return Scriptify.makeLangKey("commands",args);
     }
 
     @Override
@@ -125,25 +134,70 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
         return this.type.name;
     }
 
-    protected Parameter<?> getParameter(Type runningType, String name) {
+    protected Parameter<?> getParameter(String name) {
         Parameter<?> parameter = this.parameters.get(name);
         if(Objects.isNull(parameter)) {
             try {
                 parameter = collectParameter(name);
             } catch (CommandException ex) {
-                Scriptify.logError("An error occured when trying to collect a parameter!",ex);
+                Scriptify.logError(getClass(),"get",ex);
             }
         }
         if(Objects.isNull(parameter))
-            Scriptify.logError("Unable to get unknown parameter `{}` for sub command `{}`!",
-                    name,getName());
+            Scriptify.logError(getClass(),null,null,name,getName());
         else {
             parameter.setParameterSets(this.parameterSets);
-            parameter.setRunningType(runningType);
+            parameter.setRunningType(getType());
         }
         return parameter;
     }
 
+    protected boolean getParameterAsBool(String name) throws CommandException {
+        return getParameter(name).getAsBool();
+    }
+
+    protected byte getParameterAsByte(String name) throws CommandException {
+        return getParameter(name).getAsByte();
+    }
+
+    protected double getParameterAsDouble(String name) throws CommandException {
+        return getParameter(name).getAsDouble();
+    }
+
+    protected List<String> getParameterAsFileList(String name) throws CommandException {
+        return Misc.expandFilePaths(getParameterAsList(name));
+    }
+
+    protected float getParameterAsFloat(String name) throws CommandException {
+        return getParameter(name).getAsFloat();
+    }
+
+    protected int getParameterAsInt(String name) throws CommandException {
+        return getParameter(name).getAsInt();
+    }
+
+    protected long getParameterAsLong(String name) throws CommandException {
+        return getParameter(name).getAsLong();
+    }
+
+    protected short getParameterAsShort(String name) throws CommandException {
+        return getParameter(name).getAsShort();
+    }
+
+    protected String getParameterAsString(String name) throws CommandException {
+        return getParameter(name).getAsString();
+    }
+
+    protected <E> List<E> getParameterAsList(String name) throws CommandException {
+        return getParameter(name).getAsList();
+    }
+    
+    protected Object getParameterValue(String name) throws CommandException {
+        Parameter<?> parameter = getParameter(name);
+        if(Objects.isNull(parameter)) throwGeneric(array("null"),name);
+        return parameter.parse();
+    }
+    
     private List<String> getTabCompletionParameter(String ... args) {
         List<String> otherArgs = new ArrayList<>();
         if(args.length>1)
@@ -180,7 +234,8 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
     }
 
     public void handlePacket(PacketSendContainerInfo packet, EntityPlayerMP player) {
-        executeOnPacket(player.getServer(),player,packet);
+        setWorkingParameters(this.server,player);
+        executeOnPacket(packet);
     }
 
     protected abstract boolean hasParameters();
@@ -195,10 +250,10 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
         return getLang(args);
     }
 
-    protected void saveParameters(MinecraftServer server, ICommandSender sender) {
+    protected void saveParameters() {
         if(this.canSaveParameters) {
             try {
-                String saveParameters = (String) getParameter(this.getType(),"saveParameters").execute(server,sender);
+                String saveParameters = getParameterAsString("saveParameters");
                 if(saveParameters.matches("null") || StringUtils.isBlank(saveParameters)) return;
                 String[] parameterDefaults = new String[this.parameters.size()];
                 int index = 0;
@@ -208,14 +263,14 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
                 }
                 ScriptifyConfigHelper.addToCache("parameters",saveParameters,parameterDefaults);
             } catch(CommandException ex) {
-                Scriptify.logError("Unable to save parameters values!",ex);
+                Scriptify.logError(getClass(),"save1",ex);
             }
         }
     }
 
-    protected void saveCommand(MinecraftServer server, ICommandSender sender, SubCmd parent) {
+    protected void saveCommand(SubCmd parent) {
         try {
-            String saveCommand = (String) getParameter(this.getType(), "saveCommand").execute(server, sender);
+            String saveCommand = getParameterAsString("saveCommand");
             if(saveCommand.matches("null") || StringUtils.isBlank(saveCommand)) return;
             StringBuilder builder = new StringBuilder(ScriptifyRef.MODID+" ");
             appendSubCmd(builder,parent);
@@ -228,7 +283,7 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
             for(String parameter : parameterArray) builder.append(" ").append(parameter);
             ScriptifyConfigHelper.addToCache("commands",saveCommand,builder.toString());
         } catch(CommandException ex) {
-            Scriptify.logError("Unable to save running command!",ex);
+            Scriptify.logError(getClass(),"save2",ex);
         }
     }
 
@@ -241,6 +296,11 @@ public abstract class SubCmd extends AbstractCommand implements ISubType<Abstrac
     @Override
     protected void sendSuccess(ICommandSender sender, Object ... parameters) {
         sendGeneric(sender,array(getName(),"success"),parameters);
+    }
+
+    public void setWorkingParameters(MinecraftServer server, ICommandSender sender) {
+        this.server = server;
+        this.sender = sender;
     }
 
     @Override

@@ -1,17 +1,19 @@
 package mods.thecomputerizer.scriptify.io.data;
 
-import mods.thecomputerizer.scriptify.io.IOUtils;
+import lombok.Getter;
+import mods.thecomputerizer.scriptify.io.write.PartialWriter;
+import mods.thecomputerizer.scriptify.util.IOUtils;
+import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.mixin.access.*;
+import net.minecraft.world.biome.Biome;
 import stanhebben.zenscript.expression.*;
 import stanhebben.zenscript.expression.partial.IPartialExpression;
 import stanhebben.zenscript.parser.expression.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
+@Getter
 public class ParsedRecipeData {
 
     private final RecipeBlueprint blueprint;
@@ -24,6 +26,10 @@ public class ParsedRecipeData {
             parseArg(this.args,expression);
         if(!blueprint.verifyArgs(this.args))
             throw new IllegalArgumentException("Parsed recipe data failed blueprint verification!");
+    }
+
+    public FileWriter makeWriter() {
+        return this.blueprint.makeWriter(this.args);
     }
 
     private void parseArg(List<Object> args, ParsedExpression expression) {
@@ -82,11 +88,12 @@ public class ParsedRecipeData {
 
     private void parseBEP(List<Object> args, ExpressionCallStatic expression) {
         String type = expression.getType().getName().toLowerCase();
-        Function<Object,String> writer = IOUtils.getWriterFunc(type);
-        BEP bep = IOUtils.parseBEP(writer.apply(((ExpressionCallStaticAccessor)expression).getArguments()));
-        if(type.contains("item")) args.add(bep.asItem());
-        else if(type.contains("liquid")) args.add(bep.asFluid());
-        else if(type.contains("ore")) args.add(bep.asOreEntries());
-        else args.add(bep.toString());
+        FileWriter writer = IOUtils.getWriter(type,((ExpressionCallStaticAccessor)expression).getArguments());
+        BEP bep = BEP.of(((PartialWriter<?>)writer).getElement());
+        if(Objects.nonNull(bep)) {
+            if(type.contains("item")) args.add(bep.asItem());
+            else if(type.contains("liquid")) args.add(bep.asFluid());
+            else args.add(bep.asOreDictEntry());
+        }
     }
 }

@@ -69,10 +69,10 @@ public class ScriptifyConfigHelper {
                     line = reader.readLine();
                 }
             } catch(IOException ex) {
-                Scriptify.logError("Unable to cache arrays from file {}!",file.getName(),ex);
+                Scriptify.logError(ScriptifyConfigHelper.class,"arrays",ex,file.getName());
             }
         }
-        Scriptify.logInfo("Cached {} arrays from file {}",map.size(),file.getName());
+        Scriptify.logInfo(ScriptifyConfigHelper.class,"arrays",map.size(),file.getName());
     }
 
     public static <T> void cacheFileMap(File file, Map<String,T> map) {
@@ -88,10 +88,10 @@ public class ScriptifyConfigHelper {
                     line = reader.readLine();
                 }
             } catch(IOException ex) {
-                Scriptify.logError("Unable to cache lines from file {}!",file.getName(),ex);
+                Scriptify.logError(ScriptifyConfigHelper.class,"lines",ex,file.getName());
             }
         }
-        Scriptify.logInfo("Cached {} lines from file {}",map.size(),file.getName());
+        Scriptify.logInfo(ScriptifyConfigHelper.class,"lines",map.size(),file.getName());
     }
 
     public static List<String> getCachedCommandNames(String prefix, String arg) {
@@ -197,7 +197,7 @@ public class ScriptifyConfigHelper {
             try {
                 return clazz.getDeclaredField(fieldName);
             } catch(NoSuchFieldException ex) {
-                Scriptify.logError("Could not find file of name {} in class {}!",fieldName,clazz,ex);
+                Scriptify.logError(ScriptifyConfigHelper.class,"field",ex,fieldName,clazz);
                 return null;
             }
         }
@@ -211,8 +211,7 @@ public class ScriptifyConfigHelper {
             try {
                 return field.get(instance);
             } catch(IllegalAccessException ex) {
-                Scriptify.logError("Could not get instance of field {} in class {}!",field.getName(),
-                        field.getDeclaringClass(),ex);
+                Scriptify.logError(ScriptifyConfigHelper.class,"instance",ex,field.getName(),field.getDeclaringClass());
                 return null;
             }
         }
@@ -238,7 +237,7 @@ public class ScriptifyConfigHelper {
 
         private <T> CacheState writeCache(Map<String,T> cacheMap) {
             if(Objects.isNull(this.cachedFile) || !this.cachedFile.exists()) {
-                Scriptify.logError("Cannot write cache to null or nonexistant file {}!",this.cachedFile);
+                Scriptify.logError(ScriptifyConfigHelper.class,"write",null,this.cachedFile);
                 return this;
             }
             List<String> lines = new ArrayList<>();

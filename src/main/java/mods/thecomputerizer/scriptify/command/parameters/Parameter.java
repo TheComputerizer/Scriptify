@@ -13,12 +13,10 @@ import net.minecraft.server.MinecraftServer;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 
 public abstract class Parameter<T> implements ISubType<T> {
-
-    protected Collection<String> parameterSets = new ArrayList<>();
-    protected Type runningType;
 
     public static Parameter<?> read(ByteBuf buf) {
         Parameter<?> parameter = (Parameter<?>)Type.getParameter(NetworkUtil.readString(buf)).make();
@@ -27,6 +25,8 @@ public abstract class Parameter<T> implements ISubType<T> {
     }
 
     @Getter private final Type type;
+    @Setter protected Collection<String> parameterSets = new ArrayList<>();
+    @Setter protected Type runningType;
     @Setter protected String valueStr;
 
     public Parameter(Type type) {
@@ -41,20 +41,34 @@ public abstract class Parameter<T> implements ISubType<T> {
     }
 
     @Override
-    public T execute(MinecraftServer server, ICommandSender sender) throws CommandException {
-        if(Objects.isNull(this.valueStr)) this.valueStr = ScriptifyConfigHelper.getDefaultParameter(this.parameterSets,this.getName());
-        return parse(server,sender,this.valueStr);
-    }
-
-    @Override
     public String getLang(String ... args) {
-        return Scriptify.langKey("parameters",args);
+        return Scriptify.makeLangKey("parameters",args);
     }
 
     @Override
     public String getName() {
         return this.type.name;
     }
+
+    public abstract byte getAsByte() throws CommandException;
+
+    public abstract boolean getAsBool() throws CommandException;
+
+    public abstract double getAsDouble() throws CommandException;
+
+    public abstract float getAsFloat() throws CommandException;
+
+    public abstract int getAsInt() throws CommandException;
+
+    public abstract long getAsLong() throws CommandException;
+
+    public abstract Number getAsNumber() throws CommandException;
+
+    public abstract short getAsShort() throws CommandException;
+
+    public abstract String getAsString() throws CommandException;
+
+    public abstract <E> List<E> getAsList() throws CommandException;
 
     public String getValue(String unparsed, boolean withSpacing) throws CommandException {
         String[] split = unparsed.split("=",2);
@@ -75,7 +89,12 @@ public abstract class Parameter<T> implements ISubType<T> {
         return true;
     }
 
-    protected abstract T parse(MinecraftServer server, ICommandSender sender, String valueStr) throws CommandException;
+    public T parse() throws CommandException {
+        if(Objects.isNull(this.valueStr)) this.valueStr = ScriptifyConfigHelper.getDefaultParameter(this.parameterSets,this.getName());
+        return parse(this.valueStr);
+    }
+
+    protected abstract T parse(String valueStr) throws CommandException;
 
     public void saveCollectedValue(String[] array, int index) {
         array[index] = this.getName()+"="+this.valueStr;
@@ -88,21 +107,17 @@ public abstract class Parameter<T> implements ISubType<T> {
         NetworkUtil.writeString(buf,this.valueStr);
     }
 
-    public void setParameterSets(Collection<String> parameterSets) {
-        this.parameterSets = parameterSets;
-    }
-
-    public void setRunningType(Type runningType) {
-        this.runningType = runningType;
-    }
-
     public void throwGeneric(String type, Object ... args) throws CommandException {
-        throw new CommandException(Scriptify.langKey("parameter",type),args);
+        throw new CommandException(Scriptify.makeLangKey("parameter",type),args);
     }
 
     @Override
     public String toString() {
-        return this.type.toString();
+        try {
+            return getAsString();
+        } catch(CommandException ex) {
+            return this.type.toString();
+        }
     }
 
     public String withSpacing(String raw) {

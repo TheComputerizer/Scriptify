@@ -1,10 +1,12 @@
 package mods.thecomputerizer.scriptify.io.read;
 
 import crafttweaker.zenscript.GlobalRegistry;
+import lombok.Setter;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.data.ParsedRecipeData;
 import mods.thecomputerizer.scriptify.io.data.RecipeDataHandler;
+import mods.thecomputerizer.scriptify.util.IOUtils;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 import stanhebben.zenscript.ZenModule;
 import stanhebben.zenscript.ZenParsedFile;
@@ -27,9 +29,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 
-public class ZenFileReader implements IClampedStringReader<String> {
+public class ZenFileReader implements FileReader<String> {
 
     private ZenParsedFile parsedFile;
+    @Setter private boolean debug;
 
     public ZenFileReader(String fileName) {
         Map<String,byte[]> classes = new HashMap<>();
@@ -38,10 +41,10 @@ public class ZenFileReader implements IClampedStringReader<String> {
         File file = FileUtil.generateNestedFile(fileName,false);
         try(Reader reader = new InputStreamReader(new BufferedInputStream(Files.newInputStream(file.toPath())),StandardCharsets.UTF_8)) {
             ZenTokener parser = new ZenTokener(reader,env.getEnvironment(),fileName,false);
-            Scriptify.logInfo("Parsing script file {}",fileName);
+            Scriptify.logInfo(getClass(),"constructor",fileName);
             this.parsedFile = new ZenParsedFile(fileName,className,parser,env);
-        } catch(Exception e) {
-            Scriptify.logError("Failed to parse file {}",fileName);
+        } catch(Exception ex) {
+            Scriptify.logError(getClass(),"constructor",ex,fileName);
             this.parsedFile = null;
         }
     }
@@ -76,7 +79,7 @@ public class ZenFileReader implements IClampedStringReader<String> {
 
     public void testMove(String outputFile) {
         File file = FileUtil.generateNestedFile(outputFile,true);
-        Scriptify.logInfo("Moving to file {}",outputFile);
+        Scriptify.logDebug(getClass(),"move",outputFile);
         List<String> lines = new ArrayList<>();
         lines.add("#reloadable");
         lines.add("");
@@ -90,23 +93,18 @@ public class ZenFileReader implements IClampedStringReader<String> {
     @Override
     public void copy(List<String> lines) {
         Set<Map.Entry<String, ParsedFunction>> functionEntries = getParsedFunctions().entrySet();
-        Scriptify.logInfo("Writing {} functions",functionEntries.size());
+        Scriptify.logInfo(getClass(),"copyFunction",functionEntries.size());
         for(Map.Entry<String, ParsedFunction> functionEntry : functionEntries) {
             ParsedFunction function = functionEntry.getValue();
-            Scriptify.logInfo("Adding function with name {}",function.getName());
             lines.add(function.getName());
-            Scriptify.logInfo("Function has {} args",function.getArguments().size());
             for(ParsedFunctionArgument arg : function.getArguments()) {
-                Scriptify.logInfo("Arg name is {}",arg.getName());
-                Scriptify.logInfo("Arg type name is {}",arg.getType().getName());
-                Scriptify.logInfo("Arg default expression is {}",arg.getDefaultExpression());
                 lines.add(arg.getName());
                 lines.add(arg.getType().toString());
                 lines.add(arg.getDefaultExpression().toString());
             }
         }
         List<Statement> statements = getStatements();
-        Scriptify.logInfo("Writing {} statements",statements.size());
+        Scriptify.logInfo(getClass(),"copyStatement",statements.size());
         for(Statement statement : statements) new StatementReader(statement).copy(lines);
     }
 
@@ -116,20 +114,28 @@ public class ZenFileReader implements IClampedStringReader<String> {
     }
 
     public List<ParsedRecipeData> tryParsingRecipeData() {
+        return parseFilteredRecipeData(new ArrayList<>(),new ArrayList<>());
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<ParsedRecipeData> parseFilteredRecipeData(Collection<String> classMatches, Collection<String> methodMatches) {
+        IOUtils.lintCollections(classMatches,methodMatches);
         List<ParsedRecipeData> dataList = new ArrayList<>();
         for(Statement statement : getStatements()) {
+            if(this.debug) ScriptifyRef.LOGGER.debug("Statement class is {}",statement.getClass().getName());
             if(statement instanceof StatementExpression) {
                 ParsedRecipeData data = null;
                 try {
-                    data = RecipeDataHandler.matchExpression((StatementExpression)statement);
+                    data = RecipeDataHandler.matchFilteredExpression((StatementExpression)statement,classMatches,
+                            methodMatches,this.debug);
                 } catch (IllegalArgumentException ex) {
-                    Scriptify.logError("The recipe data parser caught an error!",ex);
+                    Scriptify.logError(getClass(),"parse",ex);
                 }
                 if(Objects.nonNull(data)) dataList.add(data);
-                else Scriptify.logDebug("Skipping data that wasn't parsed correctly");
-            } else Scriptify.logDebug("Skipping non expression statement");
+                else Scriptify.logDebug(getClass(),"parse1");
+            } else Scriptify.logDebug(getClass(),"parse1");
         }
-        Scriptify.logDebug("Parsed {} recipes from file {} (class {})",dataList.size(),getFileName(),getClassName());
+        Scriptify.logDebug(getClass(),"parse1",dataList.size(),getFileName(),getClassName());
         return dataList;
     }
 }

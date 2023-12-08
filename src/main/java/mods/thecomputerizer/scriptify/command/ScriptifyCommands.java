@@ -22,7 +22,8 @@ public class ScriptifyCommands extends AbstractCommand implements ICommand {
 
     private SubCmd nextSubCmd;
     public ScriptifyCommands() {
-        super(Type.COMMAND_HELP,Type.COMMAND_RECIPE,Type.COMMAND_RELOAD_CACHE,Type.COMMAND_RUN,Type.COMMAND_TEST);
+        super(Type.COMMAND_HELP,Type.COMMAND_COPY,Type.COMMAND_RECIPE,Type.COMMAND_RELOAD_CACHE,Type.COMMAND_RUN,
+                Type.COMMAND_TEST);
     }
 
     @Override
@@ -44,10 +45,13 @@ public class ScriptifyCommands extends AbstractCommand implements ICommand {
     public void execute(MinecraftServer server, ICommandSender sender, String ... args) throws CommandException {
         if(args.length==0) throwGeneric(array("usage"),validSubs());
         SubCmd sub = getSubCommand(args[0]);
-        if(Objects.nonNull(sub)) this.nextSubCmd = (SubCmd)sub.collect(nextArgs(args));
+        if(Objects.nonNull(sub)) {
+            sub.setWorkingParameters(server,sender);
+            this.nextSubCmd = (SubCmd)sub.collect(nextArgs(args));
+        }
         else throwGeneric(array("unknown"),args[0]);
-        if(Objects.nonNull(this.nextSubCmd)) this.nextSubCmd.execute(server,sender);
-        this.nextSubCmd.afterExecute(server,sender,null);
+        if(Objects.nonNull(this.nextSubCmd)) this.nextSubCmd.execute();
+        this.nextSubCmd.afterExecute(null);
     }
 
     @Override
