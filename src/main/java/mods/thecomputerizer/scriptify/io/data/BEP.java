@@ -18,6 +18,7 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreIngredient;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Matcher;
 
@@ -50,11 +51,11 @@ public class BEP {
     }
 
     public static BEP of(String str) {
-        Matcher item = Patterns.BEP.matcher(str);
         Matcher amount = Patterns.AMOUNT.matcher(str);
-        if(item.matches()) {
-            String[] elements = item.group(1).split(":");
-            return amount.matches() ? new BEP(Integer.parseInt(amount.group(1)),elements) : new BEP(elements);
+        String[] split = str.split(":");
+        if(split.length>0 && split.length<4) {
+            if(split.length==3 && split[2].matches("0")) split = Arrays.copyOfRange(split,0,2);
+            return amount.matches() ? new BEP(Integer.parseInt(amount.group(1)),split) : new BEP(split);
         }
         return new BEP();
     }

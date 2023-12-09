@@ -110,10 +110,11 @@ public class SubCmdCopy extends SubCmd {
 
     private void writeDirectory(Map<String,List<ParsedRecipeData>> sortedDataMap, String dirPath) {
         for(Map.Entry<String,List<ParsedRecipeData>> sortedEntry : sortedDataMap.entrySet()) {
+            String sortKey = sortedEntry.getKey();
             ZenFileWriter writer = new ZenFileWriter();
-            writer.getComments().set("Automagically Generated","Sort Element `"+sortedEntry.getKey()+"`");
+            writer.getComments().set("Automagically Generated",String.format("Sort Element `$1%s`",sortKey));
             for(ParsedRecipeData data : sortedEntry.getValue()) writer.getWriters().add(data.makeWriter());
-            writer.write(new File(dirPath, Misc.getLastSplit(sortedEntry.getKey(),".") +".zs").getPath(),true);
+            writer.write(new File(dirPath,Misc.getLastSplit(sortedEntry.getKey(),"\\.") +".zs").getPath(),true);
         }
         sendGeneric(this.sender,array("copy","write"),sortedDataMap.size(),dirPath);
     }

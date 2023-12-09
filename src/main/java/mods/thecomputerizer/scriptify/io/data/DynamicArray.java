@@ -3,19 +3,17 @@ package mods.thecomputerizer.scriptify.io.data;
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
-import mods.thecomputerizer.scriptify.io.write.ArrayWriter;
+import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
+import mods.thecomputerizer.scriptify.io.write.ExpressionWriter;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.util.IOUtils;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.scriptify.util.Patterns;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.MutableInt;
+import stanhebben.zenscript.type.ZenType;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 
 @Getter
@@ -35,16 +33,15 @@ public class DynamicArray {
         this.typeClass = makeTypeClass();
     }
 
-    public boolean isValid(Object val) {
-        if(Objects.isNull(val)) {
+    public boolean isValid(ZenType type) {
+        if(Objects.isNull(type)) {
             Scriptify.logWarn(getClass(),"null",this.typeClass.getName());
             return false;
         }
         if(this.className.matches(Object.class.getName()))
             Scriptify.logWarn(getClass(),"type",this.typeClass.getName());
-        return (Number.class.isAssignableFrom(this.typeClass) && Number.class.isAssignableFrom(val.getClass())) ||
-                RecipeBlueprint.checkSpecialMatch(this.typeClass,val.getClass()) ||
-                this.typeClass.isAssignableFrom(val.getClass());
+        Class<?> typeClass = IOUtils.getClassFromAlias(type.getName());
+        return RecipeBlueprint.checkSpecialMatch(this.typeClass,typeClass) || this.typeClass.isAssignableFrom(typeClass);
     }
 
     private Class<?> makeTypeClass() {
@@ -62,25 +59,11 @@ public class DynamicArray {
         return ref.getClass();
     }
 
-    @SafeVarargs
-    private final <A> ArrayWriter<A> makeArrayWriter(A... args) {
-        ArrayWriter<A> writer = new ArrayWriter<>(0);
-        MutableInt max = new MutableInt();
-        writer.setElements(args,(clamped,arg) -> {
-            FileWriter elementWriter = makeWriter(arg);
-            max.setValue(elementWriter.getTabLevel());
-            return elementWriter;
-        });
-        writer.setTabLevel(max.getAndAdd(1));
-        writer.setNeedsSemicolon(false);
+    public FileWriter makeWriter(ExpressionReader reader) {
+        ScriptifyRef.LOGGER.error("MAKING WRITER FOR TYPE {}",this.className);
+        ExpressionWriter writer =  new ExpressionWriter(0);
+        writer.setElement(reader.getExpression());
         return writer;
-    }
-
-    public <A> FileWriter makeWriter(A arg) {
-        ScriptifyRef.LOGGER.error("Making writer for {}",arg);
-        if(arg instanceof Object[]) return makeArrayWriter(arg);
-        if(arg instanceof Collection<?>) return makeArrayWriter(((Collection<?>)arg).toArray(new Object[0]));
-        return IOUtils.getWriter(arg.getClass().getSimpleName(),arg);
     }
 
     @Override

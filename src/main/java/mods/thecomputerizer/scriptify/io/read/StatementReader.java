@@ -1,15 +1,16 @@
 package mods.thecomputerizer.scriptify.io.read;
 
-import mods.thecomputerizer.scriptify.Scriptify;
+import lombok.Getter;
 import mods.thecomputerizer.scriptify.mixin.access.StatementExpressionAccessor;
+import stanhebben.zenscript.compiler.IEnvironmentGlobal;
 import stanhebben.zenscript.statements.Statement;
 import stanhebben.zenscript.statements.StatementExpression;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+@Getter
 public class StatementReader implements FileReader<String> {
 
     /**
@@ -17,34 +18,18 @@ public class StatementReader implements FileReader<String> {
      */
     private static final int CHAR_WIDTH = 80;
 
+    private final IEnvironmentGlobal environment;
     private final Statement statement;
-    private final Set<String> imports;
-    public StatementReader(Statement statement) {
+    private final List<StatementReader> subReaders;
+    private final @Nullable ExpressionReader expressionReader;
+    public StatementReader(IEnvironmentGlobal environment, Statement statement) {
+        this.environment = environment;
         this.statement = statement;
-        this.imports = new HashSet<>();
+        this.subReaders = new ArrayList<>();
+        for(Statement sub : statement.getSubStatements()) this.subReaders.add(new StatementReader(environment,sub));
+        this.expressionReader = this.statement instanceof StatementExpression ?
+                new ExpressionReader(((StatementExpressionAccessor)this.statement).getExpression(),environment) : null;
     }
 
-    @Override
-    public String parse(String unparsed) {
-        return null;
-    }
-
-    public void copy(List<String> lines) {
-        Scriptify.logDebug(getClass(),null,this.statement.getClass().getName());
-        List<String> unformatted = new ArrayList<>();
-        if(this.statement instanceof StatementExpression) {
-            StatementExpressionAccessor access = (StatementExpressionAccessor)this.statement;
-            this.imports.addAll(ParsedExpressionReader.copy(unformatted,access.getExpression(),false));
-        }
-        StringBuilder builder = new StringBuilder();
-        for(String line : unformatted) {
-            if(builder.length()>=CHAR_WIDTH && line.length()>2) {
-                lines.add(builder.toString());
-                builder = new StringBuilder();
-            }
-            builder.append(line);
-        }
-        lines.add(builder.append(";").toString());
-        lines.add("");
-    }
+    public void copy(List<String> lines) {}
 }

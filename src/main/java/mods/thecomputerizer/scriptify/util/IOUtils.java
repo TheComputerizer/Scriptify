@@ -8,23 +8,16 @@ import crafttweaker.api.oredict.IOreDictEntry;
 import crafttweaker.mc1120.oredict.MCOreDictEntry;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.io.data.BEP;
-import mods.thecomputerizer.scriptify.io.read.PartialExpressionReader;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.io.write.PartialWriter;
-import mods.thecomputerizer.scriptify.mixin.access.ExpressionIntAccessor;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Tuple;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.OreDictionary;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.annotations.OperatorType;
-import stanhebben.zenscript.expression.Expression;
-import stanhebben.zenscript.expression.ExpressionInt;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -171,45 +164,19 @@ public class IOUtils {
         });
         WRITER_MAP.put("item",obj -> {
             PartialWriter<ItemStack> writer = new PartialWriter<>();
-            BEP bep = null;
-            if(obj instanceof ItemStack || obj instanceof IItemStack) bep = BEP.of(obj);
-            else if(obj instanceof Expression[]) {
-                Expression[] args = (Expression[])obj;
-                if(args.length>=2) {
-                    ResourceLocation resource = new ResourceLocation(new PartialExpressionReader(args[0]).toString());
-                    if(ForgeRegistries.ITEMS.containsKey(resource)) {
-                        Item item = ForgeRegistries.ITEMS.getValue(resource);
-                        int meta = Integer.parseInt(args[1] instanceof ExpressionInt ?
-                                String.valueOf(((ExpressionIntAccessor)args[1]).getValue()) :
-                                new PartialExpressionReader(args[1]).toString());
-                        int count = 1;
-                        assert Objects.nonNull(item);
-                        bep = BEP.of(new ItemStack(item,count,meta));
-                    }
-                }
-            }
+            BEP bep = BEP.of(obj);
             writer.setElement(Objects.isNull(bep) ? ItemStack.EMPTY : bep.asItem());
             return writer;
         });
         WRITER_MAP.put("liquid",obj -> {
             PartialWriter<FluidStack> writer = new PartialWriter<>();
-            BEP bep = null;
-            if(obj instanceof FluidStack || obj instanceof ILiquidStack) bep = BEP.of(obj);
-            else if(obj instanceof Expression[]) {
-                Expression[] args = (Expression[])obj;
-                if(args.length>=1) bep = new BEP("liquid",new PartialExpressionReader(args[0]).toString());
-            }
+            BEP bep = BEP.of(obj);
             writer.setElement(Objects.isNull(bep) ? new FluidStack(FluidRegistry.WATER,0) : bep.asFluid());
             return writer;
         });
         WRITER_MAP.put("ore",obj -> {
             PartialWriter<MCOreDictEntry> writer = new PartialWriter<>();
-            BEP bep = null;
-            if(obj instanceof MCOreDictEntry) bep = BEP.of(obj);
-            else if(obj instanceof Expression[]) {
-                Expression[] args = (Expression[])obj;
-                if(args.length>=1) bep = new BEP("ore",new PartialExpressionReader(args[0]).toString());
-            }
+            BEP bep = BEP.of(obj);
             writer.setElement(Objects.isNull(bep) ? new MCOreDictEntry("logWood") : bep.asOreDictEntry());
             return writer;
         });

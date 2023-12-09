@@ -2,19 +2,16 @@ package mods.thecomputerizer.scriptify.util;
 
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
+import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
-import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.lang.reflect.Array;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -27,7 +24,7 @@ public class Misc {
      * normally available on the server. I didn't really want to just revert the changes to the log system either, so
      * I guess this is going to be a thing now.
      */
-    private static final Map<String,String> LOG_LANG_MAP = createLogLangMap();
+    private static final Map<String,Map<String,String>> LOG_LANG_CACHE = initLogLang();
 
     private static void addLogKey(Map<String,String> map, String unparsed) {
         String[] split = unparsed.split("=",2);
@@ -35,10 +32,58 @@ public class Misc {
         else ScriptifyRef.LOGGER.error("Failed to add translation for log message |{}|",unparsed);
     }
 
+    public static boolean allNonNull(Object ... objects) {
+        return !anyNull(objects);
+    }
+
+
+    public static boolean allNull(Object ... objects) {
+        return !anyNonNull(objects);
+    }
+
+    public static boolean anyNonNull(Object ... objects) {
+        for(Object obj : objects)
+            if(Objects.nonNull(obj)) return true;
+        return false;
+    }
+
+    public static boolean anyNull(Object ... objects) {
+        for(Object obj : objects)
+            if(Objects.isNull(obj)) return true;
+        return false;
+    }
+
+    /**
+     * Exceptions need to be handled externally
+     */
+    public static <K,V> @Nullable V applyNullable(@Nullable K thing, Function<K,V> function) {
+        return Objects.isNull(thing) ? null : function.apply(thing);
+    }
+
+    /**
+     * Exceptions need to be handled externally
+     */
+    public static <K> void consumeNullable(@Nullable K thing, Consumer<K> conumer) {
+        if(Objects.nonNull(thing)) conumer.accept(thing);
+    }
+
+    public static void applyCachedLangFiles(Map<String,String[]> map) {
+        LOG_LANG_CACHE.clear();
+        for(Map.Entry<String,String[]> entry : map.entrySet()) {
+            Map<String,String> localeMap = new HashMap<>();
+            for(String translation : entry.getValue()) {
+                String[] split = translation.split("=",2);
+                if(split.length==2) localeMap.put(split[0],split[1]);
+            }
+            LOG_LANG_CACHE.put(entry.getKey(),Collections.unmodifiableMap(localeMap));
+        }
+        LOG_LANG_CACHE.putIfAbsent("en_us",createDefualtLogLang());
+    }
+
     /**
      * No I don't feel like manually separating these into 2 strings even though I can probably regex replace it.
      */
-    private static Map<String,String> createLogLangMap() {
+    private static Map<String,String> createDefualtLogLang() {
         Map<String,String> map = new HashMap<>();
         addLogKey(map,"log.scriptify.collectionbundle.debug.removal=Failed to remove element at index `%1$s` from collection");
         addLogKey(map,"log.scriptify.collectionbundle.exception=Unable to get collection type `%1$s` as `%2$s`");
@@ -116,10 +161,45 @@ public class Misc {
         return primitive;
     }
 
+    public static <V> V getEither(boolean choice, V ifChoice, V notChoice) {
+        return choice ? ifChoice : notChoice;
+    }
+
+    /**
+     * if choice 1 else choice 2 else neither
+     */
+    public static <V> V getEitherOr(boolean choice1, boolean choice2, V ifChoice1, V ifChoice2, V neither) {
+        return choice1 ? ifChoice1 : (choice2 ? ifChoice2 : neither);
+    }
+
+    /**
+     * The returns arrays is be used as reference and any choice element not present at the index will be false.
+     * Assumes returns will always be nonnull with at least 1 element
+     */
+    @SafeVarargs
+    public static <V> V getEitherTrailing(boolean[] choices, V ... returns) {
+        if(returns.length==1) return returns[0];
+        for(int i=0; i+1<returns.length; i++) {
+            boolean choice = choices.length>i && choices[i];
+            if(choice) return returns[i];
+        }
+        return returns[returns.length-1];
+    }
+
     public static String getLastSplit(String str, String splitBy) {
         if(!str.contains(splitBy)) return str;
         String[] split = str.split(splitBy);
         return split.length==0 ? str : split[split.length-1];
+    }
+
+    public static <N,V> V getNullable(@Nullable N nullable, V notNull, V isNull) {
+        return getEither(Objects.nonNull(nullable),notNull,isNull);
+    }
+
+    private static Map<String,Map<String,String>> initLogLang() {
+        Map<String,Map<String,String>> map = new HashMap<>();
+        map.put("en_us",createDefualtLogLang());
+        return map;
     }
 
     public static <T> Object listToArray(List<T> list) {
@@ -186,7 +266,7 @@ public class Misc {
      */
     public static String translateLog(Class<?> clazz, String level, @Nullable String qualifier, Object ... args) {
         String key = makeLogKey(clazz,level,qualifier);
-        String val = LOG_LANG_MAP.get(key);
+        String val = LOG_LANG_CACHE.get(ScriptifyConfigHelper.getLangDefault()).get(key);
         return Objects.nonNull(val) ? String.format(val,args) : key;
     }
 }

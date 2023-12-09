@@ -18,6 +18,10 @@ public class ScriptifyConfig {
     @LangKey("config."+ScriptifyRef.MODID+".commands")
     public static Commands COMMANDS = new Commands();
 
+    @Name("misc")
+    @LangKey("config."+ScriptifyRef.MODID+".misc")
+    public static Misc MISC = new Misc();
+
     @Name("parameters")
     @LangKey("config."+ScriptifyRef.MODID+".parameters")
     public static Parameters PARAMETERS = new Parameters();
@@ -28,6 +32,19 @@ public class ScriptifyConfig {
         @Comment("Determines the file from which prebuilt commands will be read from")
         @LangKey("config."+ScriptifyRef.MODID+".commands.commandBuilders")
         public String commandBuilders = "commands.txt";
+    }
+
+    public static class Misc {
+
+        @Name("logLangFolder")
+        @Comment("Determines the folder from which lang files for translated log messages will be read from")
+        @LangKey("config."+ScriptifyRef.MODID+".misc.logLangFolder")
+        public String logLangFolder = "lang";
+
+        @Name("logLangDefault")
+        @Comment("Determines the default locale for translated log messages before it gets synced from the client")
+        @LangKey("config."+ScriptifyRef.MODID+".misc.logLangDefault")
+        public String logLangDefault = "en_us";
     }
 
     public static class Parameters {

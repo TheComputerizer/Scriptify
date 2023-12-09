@@ -6,10 +6,13 @@
   "minVersion": "0.8",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "ExpressionArrayAccessor",
     "ExpressionBoolAccessor",
     "ExpressionCallStaticAccessor",
+    "ExpressionCallVirtualAccessor",
     "ExpressionFloatAccessor",
     "ExpressionIntAccessor",
+    "ExpressionMapAccessor",
     "ExpressionStringAccessor",
     "ParsedExpressionArrayAccessor",
     "ParsedExpressionBinaryAccessor",

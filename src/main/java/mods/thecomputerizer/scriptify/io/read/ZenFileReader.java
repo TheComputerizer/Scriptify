@@ -7,6 +7,7 @@ import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.data.ParsedRecipeData;
 import mods.thecomputerizer.scriptify.io.data.RecipeDataHandler;
 import mods.thecomputerizer.scriptify.util.IOUtils;
+import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 import stanhebben.zenscript.ZenModule;
 import stanhebben.zenscript.ZenParsedFile;
@@ -50,31 +51,35 @@ public class ZenFileReader implements FileReader<String> {
     }
 
     public @Nullable String getClassName() {
-        return Objects.nonNull(this.parsedFile) ? this.parsedFile.getClassName() : null;
+        return Misc.getNullable(this.parsedFile,this.parsedFile.getClassName(),null);
+    }
+
+    public @Nullable IEnvironmentGlobal getEnvironment() {
+        return Misc.getNullable(this.parsedFile,this.parsedFile.getEnvironment(),null);
     }
 
     public @Nullable String getFileName() {
-        return Objects.nonNull(this.parsedFile) ? this.parsedFile.getFileName() : null;
+        return Misc.getNullable(this.parsedFile,this.parsedFile.getFileName(),null);
     }
 
     public Map<String,ParsedGlobalValue> getGlobals() {
-        return Objects.nonNull(this.parsedFile) ? this.parsedFile.getGlobals() : Collections.emptyMap();
+        return Misc.getNullable(this.parsedFile,this.parsedFile.getGlobals(),Collections.emptyMap());
     }
 
     public List<Import> getImports() {
-        return Objects.nonNull(this.parsedFile) ? this.parsedFile.getImports() : Collections.emptyList();
+        return Misc.getNullable(this.parsedFile,this.parsedFile.getImports(),Collections.emptyList());
     }
 
     public Map<String,ParsedZenClass> getParsedClasses() {
-        return Objects.nonNull(this.parsedFile) ? this.parsedFile.getClasses() : Collections.emptyMap();
+        return Misc.getNullable(this.parsedFile,this.parsedFile.getClasses(),Collections.emptyMap());
     }
 
     public Map<String,ParsedFunction> getParsedFunctions() {
-        return Objects.nonNull(this.parsedFile) ? this.parsedFile.getFunctions() : Collections.emptyMap();
+        return Misc.getNullable(this.parsedFile,this.parsedFile.getFunctions(),Collections.emptyMap());
     }
 
     public List<Statement> getStatements() {
-        return Objects.nonNull(this.parsedFile) ? this.parsedFile.getStatements() : Collections.emptyList();
+        return Misc.getNullable(this.parsedFile,this.parsedFile.getStatements(),Collections.emptyList());
     }
 
     public void testMove(String outputFile) {
@@ -105,12 +110,7 @@ public class ZenFileReader implements FileReader<String> {
         }
         List<Statement> statements = getStatements();
         Scriptify.logInfo(getClass(),"copyStatement",statements.size());
-        for(Statement statement : statements) new StatementReader(statement).copy(lines);
-    }
-
-    @Override
-    public String parse(String unparsed) {
-        return null;
+        for(Statement statement : statements) new StatementReader(getEnvironment(),statement).copy(lines);
     }
 
     public List<ParsedRecipeData> tryParsingRecipeData() {
@@ -126,8 +126,8 @@ public class ZenFileReader implements FileReader<String> {
             if(statement instanceof StatementExpression) {
                 ParsedRecipeData data = null;
                 try {
-                    data = RecipeDataHandler.matchFilteredExpression((StatementExpression)statement,classMatches,
-                            methodMatches,this.debug);
+                    data = RecipeDataHandler.matchFilteredExpression(this,(StatementExpression)statement,
+                            classMatches,methodMatches,this.debug);
                 } catch (IllegalArgumentException ex) {
                     Scriptify.logError(getClass(),"parse",ex);
                 }

@@ -2,6 +2,7 @@ package mods.thecomputerizer.scriptify.io.data;
 
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
+import mods.thecomputerizer.scriptify.io.read.ZenFileReader;
 import mods.thecomputerizer.scriptify.mixin.access.ParsedExpressionCallAccessor;
 import mods.thecomputerizer.scriptify.mixin.access.ParsedExpressionMemberAccessor;
 import mods.thecomputerizer.scriptify.mixin.access.ParsedExpressionVariableAccessor;
@@ -40,7 +41,7 @@ public class RecipeDataHandler {
         return blueprint;
     }
 
-    public static @Nullable ParsedRecipeData matchFilteredExpression(StatementExpression statement,
+    public static @Nullable ParsedRecipeData matchFilteredExpression(ZenFileReader reader, StatementExpression statement,
             Collection<String> classMatches, Collection<String> methodMatches, boolean isDebug) throws IllegalArgumentException {
         ScriptifyRef.LOGGER.error("CLASSES ARE {} AND METHODS ARE {}",TextUtil.compileCollection(classMatches),
                 TextUtil.compileCollection(methodMatches));
@@ -50,7 +51,7 @@ public class RecipeDataHandler {
             RecipeBlueprint blueprint = matchMember((ParsedExpressionMember)access.getReceiver(),classMatches,methodMatches);
             if(Objects.nonNull(blueprint)) {
                 Scriptify.logInfo(RecipeDataHandler.class,null,blueprint);
-                return new ParsedRecipeData(blueprint,access.getArguments());
+                return new ParsedRecipeData(blueprint,reader.getEnvironment(),access.getArguments());
             } else if(!classMatches.isEmpty() || !methodMatches.isEmpty()) {
                 if(classMatches.isEmpty())
                     Scriptify.logError(RecipeDataHandler.class,"method",null,TextUtil.compileCollection(methodMatches));
