@@ -5,6 +5,7 @@ import lombok.Setter;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.data.BEP;
+import mods.thecomputerizer.scriptify.util.Misc;
 
 import java.util.List;
 import java.util.Objects;
@@ -16,7 +17,7 @@ import java.util.Objects;
 @Setter
 public class PartialWriter<E> extends FileWriter {
 
-    private E element;
+    protected E element;
 
     public PartialWriter() {
         this(0);
@@ -26,22 +27,13 @@ public class PartialWriter<E> extends FileWriter {
         super(tabLevel);
     }
 
-    public void logTypeClass() {
-        if(Objects.isNull(this.element)) ScriptifyRef.LOGGER.error("Element is null");
-        else ScriptifyRef.LOGGER.error("Element is class {}",element.getClass().getName());
+    @Override
+    public String toString() {
+        return Misc.getNullable(this.element,this.element.toString(),"null");
     }
 
     @Override
     public void writeLines(List<String> lines) {
         tryAppend(lines,toString(),false);
-    }
-
-    @Override
-    public String toString() {
-        if(Objects.nonNull(this.element)) {
-            BEP bep = BEP.of(this.element);
-            if(Objects.nonNull(bep)) return bep.toString();
-        }
-        return Objects.nonNull(this.element) ? this.element.toString() : "null";
     }
 }

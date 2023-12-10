@@ -4,14 +4,12 @@ import crafttweaker.api.item.IIngredient;
 import crafttweaker.api.item.IItemStack;
 import crafttweaker.api.liquid.ILiquidStack;
 import crafttweaker.api.oredict.IOreDictEntry;
-import crafttweaker.mc1120.oredict.MCOreDictEntry;
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
+import mods.thecomputerizer.scriptify.io.write.ClampedWriter;
+import mods.thecomputerizer.scriptify.io.write.ExpressionWriter;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
-import mods.thecomputerizer.scriptify.io.write.MethodWriter;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.type.ZenType;
 
@@ -98,14 +96,15 @@ public class RecipeBlueprint {
     }
 
     public FileWriter makeWriter(Collection<ExpressionReader> readers) {
-        MethodWriter writer = new MethodWriter(0);
-        writer.setClassName(this.className);
-        writer.setMethodName(this.methodName);
-        int i = 0;
-        for(ExpressionReader reader : readers) {
-            writer.addWriter(this.parameterTypes[i].makeWriter(reader));
-            i++;
-        }
+        ClampedWriter writer = new ClampedWriter(0);
+        writer.setPrefix(this.className+"."+this.methodName);
+        writer.setDisableSpaces(true);
+        writer.setNewLine(true);
+        writer.addWriters(reader -> {
+            ExpressionWriter argWriter = new ExpressionWriter(reader.getExpression());
+            argWriter.setTabLevel(1);
+            return argWriter;
+        },readers);
         return writer;
     }
 }

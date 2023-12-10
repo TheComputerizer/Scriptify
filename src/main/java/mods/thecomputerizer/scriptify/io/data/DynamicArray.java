@@ -2,10 +2,6 @@ package mods.thecomputerizer.scriptify.io.data;
 
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.ScriptifyRef;
-import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
-import mods.thecomputerizer.scriptify.io.write.ExpressionWriter;
-import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.util.IOUtils;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.scriptify.util.Patterns;
@@ -57,13 +53,6 @@ public class DynamicArray {
         Arrays.fill(dimensions,1);
         Object ref = Misc.makeArray(clazz,dimensions);
         return ref.getClass();
-    }
-
-    public FileWriter makeWriter(ExpressionReader reader) {
-        ScriptifyRef.LOGGER.error("MAKING WRITER FOR TYPE {}",this.className);
-        ExpressionWriter writer =  new ExpressionWriter(0);
-        writer.setElement(reader.getExpression());
-        return writer;
     }
 
     @Override

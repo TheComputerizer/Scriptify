@@ -155,6 +155,12 @@ public class Misc {
         return expandFilePaths(Arrays.asList(filePaths));
     }
 
+    public static boolean extendsAny(Class<?> clazz, Class<?> ... extensions) {
+        for(Class<?> extension : extensions)
+            if(extension.isAssignableFrom(clazz)) return true;
+        return false;
+    }
+
     public static int[] fixBoxedArray(Integer ... boxed) {
         int[] primitive = new int[boxed.length];
         for(int i=0; i<boxed.length; i++) primitive[i] = boxed[i];

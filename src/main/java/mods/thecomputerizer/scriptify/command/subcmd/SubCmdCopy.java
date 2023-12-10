@@ -6,9 +6,7 @@ import mods.thecomputerizer.scriptify.io.read.ZenFileReader;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.io.write.ZenFileWriter;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
-import mods.thecomputerizer.scriptify.util.IOUtils;
 import mods.thecomputerizer.scriptify.util.Misc;
-import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 import net.minecraft.command.CommandException;
 import org.apache.commons.lang3.StringUtils;
 
@@ -114,7 +112,7 @@ public class SubCmdCopy extends SubCmd {
             ZenFileWriter writer = new ZenFileWriter();
             writer.getComments().set("Automagically Generated",String.format("Sort Element `$1%s`",sortKey));
             for(ParsedRecipeData data : sortedEntry.getValue()) writer.getWriters().add(data.makeWriter());
-            writer.write(new File(dirPath,Misc.getLastSplit(sortedEntry.getKey(),"\\.") +".zs").getPath(),true);
+            writer.writeToFile(new File(dirPath,Misc.getLastSplit(sortedEntry.getKey(),"\\.") +".zs").getPath(),true);
         }
         sendGeneric(this.sender,array("copy","write"),sortedDataMap.size(),dirPath);
     }
@@ -132,7 +130,7 @@ public class SubCmdCopy extends SubCmd {
                 zenWriter.getWriters().add(writer);
             }
         }
-        zenWriter.write(filePath,true);
+        zenWriter.writeToFile(filePath,true);
         sendGeneric(this.sender,array("copy","write"),sortedDataMap.size(),filePath);
     }
 }

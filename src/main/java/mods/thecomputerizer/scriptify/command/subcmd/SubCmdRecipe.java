@@ -56,7 +56,7 @@ public class SubCmdRecipe extends SubCmd {
                 for(String path : filePaths) {
                     ZenFileWriter writer = shapelessTest(inventory,name,path);
                     writer.addPreProcessor("reloadable");
-                    writer.write(path, true);
+                    writer.writeToFile(path, true);
                 }
                 sendSuccess(player,this.getName());
             } catch(CommandException ex) {

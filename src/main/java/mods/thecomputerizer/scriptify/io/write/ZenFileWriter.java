@@ -61,7 +61,7 @@ public class ZenFileWriter extends FileWriter {
         }
     }
 
-    public void write(String filePath, boolean overwrite) {
+    public void writeToFile(String filePath, boolean overwrite) {
         List<String> lines = new ArrayList<>();
         writeLines(lines);
         FileUtil.writeLinesToFile(filePath,lines,!overwrite);

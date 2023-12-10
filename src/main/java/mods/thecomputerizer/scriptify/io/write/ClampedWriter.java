@@ -1,58 +1,93 @@
 package mods.thecomputerizer.scriptify.io.write;
 
+import lombok.Getter;
 import lombok.Setter;
-import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.util.CollectionBundle;
+import mods.thecomputerizer.scriptify.util.Misc;
+import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
-public abstract class ClampedWriter<E> extends FileWriter {
+/**
+ * Writer wrapper for delegating primitive and nonenclosing types to sub writers.
+ * Sub writers will be enclosed or "clamped" by getStart and getEnd
+ */
+public class ClampedWriter extends FileWriter {
 
-    protected final CollectionBundle<FileWriter> writers;
+    @Getter protected final CollectionBundle<FileWriter> writers;
+    @Setter private String prefix;
+    @Setter private String strClose;
+    @Setter private String strOpen;
+    @Setter private String strSeparator;
+    @Setter private boolean forceAppend;
     @Setter private boolean needsSemicolon;
+    @Setter private boolean disableSpaces;
 
     public ClampedWriter(int tabLevel) {
         super(tabLevel);
         this.writers = CollectionBundle.make(ArrayList::new);
         this.needsSemicolon = true;
+        this.strClose = ")";
+        this.strOpen = "(";
+        this.strSeparator = ", ";
     }
 
-    public void addElement(E element, BiFunction<ClampedWriter<E>,E,FileWriter> writerFunc) {
-        this.writers.add(writerFunc.apply(this, element));
+    public void addWriter(FileWriter writer) {
+        this.writers.add(writer);
     }
 
-    protected void applyWriters(List<String> lines) {
-
+    public <E> void addWriters(Function<E,FileWriter> toWriter, Iterable<E> things) {
+        for(E thing : things) addWriter(toWriter.apply(thing));
     }
 
-    protected String getEnd(String end) {
-        return end+(this.needsSemicolon ? "; " : "");
+    public <E> void addWriters(Function<E,FileWriter> toWriter, E[] things) {
+        for(E thing : things) addWriter(toWriter.apply(thing));
     }
 
-    protected String getStart(String start) {
-        return start+" ";
+    private String getStart() {
+        return Misc.getNullable(this.prefix,this.prefix,"")+this.strOpen +
+                Misc.getEither(this.disableSpaces,""," ");
     }
 
-    public void setElements(E[] elements, BiFunction<ClampedWriter<E>,E,FileWriter> writerFunc) {
-        this.writers.clear();
-        for(E element : elements) {
-            addElement(element,writerFunc);
-        }
+    private String getSeparator(boolean removeSpaces) {
+        return Misc.getEither(removeSpaces,this.strSeparator.replaceAll(" ",""),this.strSeparator);
     }
 
-    protected void writeBasic(List<String> lines) {
-        int index = 0;
+    private String getEnd() {
+        return this.strClose +(this.needsSemicolon ? ";" : "");
+    }
+
+    @Override
+    public void setTabLevel(int numTabs) {
+        this.tabLevel = numTabs;
+        for(FileWriter writer : this.writers) writer.setTabLevel(numTabs+1);
+    }
+
+    @Override
+    public void writeLines(List<String> lines) {
+        if(this.forceAppend) {
+            List<String> subLines = new ArrayList<>();
+            writeSubs(subLines,true);
+            write(lines,TextUtil.listToString(subLines,"").replaceAll("\t",""),true);
+        } else writeSubs(lines,false);
+    }
+
+    private void writeSubs(List<String> lines, boolean removeSpaces) {
+        write(lines,getStart(),true,false);
+        int i = 0;
         for(FileWriter writer : this.writers) {
-            writer.setTabLevel(getTabLevel()+1);
-            ScriptifyRef.LOGGER.error("Element class is {} and tab level is {}",writer.getClass().getName(),writer.getTabLevel());
-            if(writer instanceof PartialWriter<?>)
-                ScriptifyRef.LOGGER.error("Partial writer element is {}",((PartialWriter<?>)writer).getElement());
+            if(writer instanceof ClampedWriter) writer.setNewLine(true);
             writer.writeLines(lines);
-            String append = index+1<this.writers.size() ? ", " : " ";
-            tryAppend(lines,append,true);
-            index++;
+            i++;
+            if(i<this.writers.size()) {
+                boolean newLine = isNewLine();
+                setNewLine(false);
+                write(lines,getSeparator(removeSpaces),true,true);
+                setNewLine(newLine);
+            }
         }
+        write(lines,getEnd(),true,true);
     }
 }
