@@ -2,10 +2,6 @@ package mods.thecomputerizer.scriptify.io.write;
 
 import lombok.Getter;
 import lombok.Setter;
-import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.ScriptifyRef;
-import mods.thecomputerizer.scriptify.io.data.BEP;
-import mods.thecomputerizer.scriptify.util.Misc;
 
 import java.util.List;
 import java.util.Objects;
@@ -29,11 +25,11 @@ public class PartialWriter<E> extends FileWriter {
 
     @Override
     public String toString() {
-        return Misc.getNullable(this.element,this.element.toString(),"null");
+        return Objects.nonNull(this.element) ? this.element.toString() : "null";
     }
 
     @Override
     public void writeLines(List<String> lines) {
-        tryAppend(lines,toString(),false);
+        write(lines,toString(),true);
     }
 }

@@ -3,6 +3,7 @@ package mods.thecomputerizer.scriptify.io.data;
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
+import mods.thecomputerizer.scriptify.io.write.ZenFileWriter;
 import stanhebben.zenscript.compiler.IEnvironmentGlobal;
 import stanhebben.zenscript.parser.expression.*;
 
@@ -29,6 +30,13 @@ public class ParsedRecipeData {
         for(ParsedExpression expression : expressions)
             readers.add(new ExpressionReader(expression,this.environment));
         return readers;
+    }
+
+    public void finalizeWriter(ZenFileWriter writer) {
+        if(this.blueprint.isReloadable()) writer.setPreProcessors("reloadable");
+        String className = this.blueprint.getClassName();
+        if(RecipeDataHandler.isGlobalClass(className)) return;
+        writer.setImports(className);
     }
 
     public FileWriter makeWriter() {

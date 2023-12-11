@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 
-public class ZenFileReader implements FileReader<String> {
+public class ZenFileReader extends FileReader {
 
     private ZenParsedFile parsedFile;
     @Setter private boolean debug;

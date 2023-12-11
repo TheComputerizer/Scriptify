@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
-public class StatementReader implements FileReader<String> {
+public class StatementReader extends FileReader {
 
     /**
      * Character width of a page before a line break. Soft cap.

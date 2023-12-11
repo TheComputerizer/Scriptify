@@ -193,9 +193,7 @@ public class Misc {
     }
 
     public static String getLastSplit(String str, String splitBy) {
-        if(!str.contains(splitBy)) return str;
-        String[] split = str.split(splitBy);
-        return split.length==0 ? str : split[split.length-1];
+        return str.substring(str.lastIndexOf(splitBy)+1);
     }
 
     public static <N,V> V getNullable(@Nullable N nullable, V notNull, V isNull) {

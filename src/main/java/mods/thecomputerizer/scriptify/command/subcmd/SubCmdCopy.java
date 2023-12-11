@@ -111,8 +111,12 @@ public class SubCmdCopy extends SubCmd {
             String sortKey = sortedEntry.getKey();
             ZenFileWriter writer = new ZenFileWriter();
             writer.getComments().set("Automagically Generated",String.format("Sort Element `$1%s`",sortKey));
-            for(ParsedRecipeData data : sortedEntry.getValue()) writer.getWriters().add(data.makeWriter());
-            writer.writeToFile(new File(dirPath,Misc.getLastSplit(sortedEntry.getKey(),"\\.") +".zs").getPath(),true);
+            for(ParsedRecipeData data : sortedEntry.getValue()) {
+                writer.getWriters().add(data.makeWriter());
+                data.finalizeWriter(writer);
+            }
+            writer.addPreProcessor("reloadable");
+            writer.writeToFile(new File(dirPath,Misc.getLastSplit(sortedEntry.getKey(),".") +".zs").getPath(),true);
         }
         sendGeneric(this.sender,array("copy","write"),sortedDataMap.size(),dirPath);
     }
@@ -128,8 +132,10 @@ public class SubCmdCopy extends SubCmd {
                     first = false;
                 }
                 zenWriter.getWriters().add(writer);
+                data.finalizeWriter(zenWriter);
             }
         }
+        zenWriter.addPreProcessor("reloadable");
         zenWriter.writeToFile(filePath,true);
         sendGeneric(this.sender,array("copy","write"),sortedDataMap.size(),filePath);
     }

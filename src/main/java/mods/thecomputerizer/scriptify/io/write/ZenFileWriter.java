@@ -8,23 +8,23 @@ import java.util.*;
 
 public class ZenFileWriter extends FileWriter {
 
-    private List<String> preProcessors;
-    private List<String> imports;
+    private Set<String> preProcessors;
+    @Getter private Set<String> imports;
     @Getter private final Set<FileWriter> writers;
     @Setter private boolean debug;
 
     public ZenFileWriter(FileWriter... entries) {
         super(0);
-        this.preProcessors = new ArrayList<>();
-        this.imports = new ArrayList<>();
+        this.preProcessors = new HashSet<>();
+        this.imports = new HashSet<>();
         this.writers = new HashSet<>();
         this.writers.addAll(Arrays.asList(entries));
     }
 
     public ZenFileWriter(Collection<FileWriter> entries) {
         super(0);
-        this.preProcessors = new ArrayList<>();
-        this.imports = new ArrayList<>();
+        this.preProcessors = new HashSet<>();
+        this.imports = new HashSet<>();
         this.writers = new HashSet<>(entries);
     }
 
@@ -37,28 +37,32 @@ public class ZenFileWriter extends FileWriter {
     }
 
     public void setImports(String ... classNames)  {
-        this.imports = Arrays.asList(classNames);
+        this.imports = new HashSet<>(Arrays.asList(classNames));
     }
 
     public void setPreProcessors(String ... processors) {
-        this.preProcessors = Arrays.asList(processors);
+        this.preProcessors = new HashSet<>(Arrays.asList(processors));
     }
 
     @Override
     public void writeLines(List<String> lines) {
+        List<String> writerLines = new ArrayList<>();
+        for(FileWriter writer : this.writers) {
+            writer.writeLines(writerLines);
+            addBlankLine(writerLines);
+            writer.collectImports(this.imports);
+            writer.collectPreprocessors(this.preProcessors);
+        }
         writeComments(lines);
         if(!this.preProcessors.isEmpty()) {
             for(String processor : this.preProcessors) lines.add("#"+processor);
-            lines.add("");
+            addBlankLine(lines);
         }
         if(!this.imports.isEmpty()) {
             for(String className : this.imports) lines.add("import "+className+";");
-            lines.add("");
+            addBlankLine(lines);
         }
-        for(FileWriter writer : this.writers) {
-            writer.writeLines(lines);
-            lines.add("");
-        }
+        lines.addAll(writerLines);
     }
 
     public void writeToFile(String filePath, boolean overwrite) {

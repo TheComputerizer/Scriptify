@@ -1,6 +1,5 @@
 package mods.thecomputerizer.scriptify.io.read;
 
-import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.data.ByteArrayClassLoader;
 import org.objectweb.asm.ClassWriter;
@@ -17,7 +16,7 @@ import java.util.Objects;
 
 import static stanhebben.zenscript.util.ZenTypeUtil.internal;
 
-public class ExpressionCallReader implements FileReader<String> {
+public class ExpressionCallReader extends FileReader {
 
     private final IEnvironmentGlobal environment;
     private final Expression call;

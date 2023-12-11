@@ -10,6 +10,7 @@ import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
 import mods.thecomputerizer.scriptify.io.write.ClampedWriter;
 import mods.thecomputerizer.scriptify.io.write.ExpressionWriter;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
+import mods.thecomputerizer.scriptify.util.Misc;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.type.ZenType;
 
@@ -17,6 +18,7 @@ import java.util.*;
 
 public class RecipeBlueprint {
 
+    private static final List<String> RELOADABLE_MODS = Arrays.asList("vanilla","extendedcrafting");
     private static final Set<Class<?>> INGREDIENT_MATCHES = new HashSet<>(Arrays.asList(IOreDictEntry.class,
             IItemStack.class,ILiquidStack.class));
     private static final Set<Class<?>> INGREDIENT_MATCHES_ARR_1 = new HashSet<>(Arrays.asList(IOreDictEntry[].class,
@@ -61,6 +63,9 @@ public class RecipeBlueprint {
                 StringUtils.repeat("]",type.getBracketCount());
     }
 
+    public boolean isReloadable() {
+        return RELOADABLE_MODS.contains(this.mod);
+    }
 
     public boolean matches(String simpleClass, String otherMethod) {
         if(this.methodName.matches(otherMethod)) {
@@ -97,7 +102,7 @@ public class RecipeBlueprint {
 
     public FileWriter makeWriter(Collection<ExpressionReader> readers) {
         ClampedWriter writer = new ClampedWriter(0);
-        writer.setPrefix(this.className+"."+this.methodName);
+        writer.setPrefix(Misc.getLastSplit(this.className,".") +"."+this.methodName);
         writer.setDisableSpaces(true);
         writer.setNewLine(true);
         writer.addWriters(reader -> {

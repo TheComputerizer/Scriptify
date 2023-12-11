@@ -3,13 +3,13 @@ package mods.thecomputerizer.scriptify.io.write;
 import lombok.Getter;
 import lombok.Setter;
 import mods.thecomputerizer.scriptify.util.CollectionBundle;
-import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Writes lines to a file based a list of strings that gets passed through.
@@ -25,7 +25,7 @@ public abstract class FileWriter {
 
     protected FileWriter(int tabLevel) {
         this.comments = CollectionBundle.make(ArrayList::new);
-        this.characterLimit = 80;
+        this.characterLimit = 100;
         this.tabLevel = tabLevel;
     }
 
@@ -33,31 +33,28 @@ public abstract class FileWriter {
         lines.add("");
     }
 
-    public FileWriter incrementTabLevel() {
-        this.tabLevel++;
-        return this;
-    }
+    public void collectImports(Set<String> imports) {}
+
+    public void collectPreprocessors(Set<String> preprocessors) {}
 
     @Override
     public String toString() {
-        try {
-            List<String> lines = new ArrayList<>();
-            writeLines(lines);
-            String str = TextUtil.listToString(lines, " ");
-            return Misc.getNullable(str, "null", str.trim());
-        } catch (NullPointerException ex) {
-            return "null";
-        }
+        List<String> lines = new ArrayList<>();
+        writeLines(lines);
+        String str = TextUtil.listToString(lines, " ");
+        return Objects.nonNull(str) ? str.trim() : "null";
     }
 
     protected void tryAppend(List<String> lines, String str, boolean ignoreCharacterLimit) {
-        if(!this.newLine && !lines.isEmpty()) {
-            String last = lines.get(lines.size()-1);
-            if(ignoreCharacterLimit || last.length()+str.length()<=this.characterLimit) {
-                lines.remove(lines.size()-1);
-                last+=str;
-                lines.add(last);
-            } else write(lines,str);
+        if(lines.isEmpty() || this.newLine) {
+            write(lines,str);
+            return;
+        }
+        String last = lines.get(lines.size()-1);
+        if(ignoreCharacterLimit || last.length()+str.length()<=this.characterLimit) {
+            lines.remove(lines.size()-1);
+            last+=str;
+            lines.add(last);
         } else write(lines,str);
     }
 
@@ -90,7 +87,7 @@ public abstract class FileWriter {
      * Writes the string to a new line with the correct number of tabs if that fails or if tryAppend is false
      */
     protected void write(List<String> lines, String str, boolean tryAppend, boolean ignoreCharacterLimit) {
-        if(tryAppend) tryAppend(lines,str,ignoreCharacterLimit);
+        if(!this.newLine && tryAppend) tryAppend(lines,str,ignoreCharacterLimit);
         else lines.add(withTabs(str));
     }
 }

@@ -14,10 +14,7 @@ import stanhebben.zenscript.parser.expression.ParsedExpressionMember;
 import stanhebben.zenscript.statements.StatementExpression;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @SuppressWarnings("SpellCheckingInspection")
 public class RecipeDataHandler {
@@ -41,8 +38,12 @@ public class RecipeDataHandler {
         return blueprint;
     }
 
+    public static boolean isGlobalClass(String className) {
+        return className.matches("recipes") || className.matches("furnace");
+    }
+
     public static @Nullable ParsedRecipeData matchFilteredExpression(ZenFileReader reader, StatementExpression statement,
-            Collection<String> classMatches, Collection<String> methodMatches, boolean isDebug) throws IllegalArgumentException {
+                                                                     Collection<String> classMatches, Collection<String> methodMatches, boolean isDebug) throws IllegalArgumentException {
         ScriptifyRef.LOGGER.error("CLASSES ARE {} AND METHODS ARE {}",TextUtil.compileCollection(classMatches),
                 TextUtil.compileCollection(methodMatches));
         ParsedExpression expression = ((StatementExpressionAccessor)statement).getExpression();

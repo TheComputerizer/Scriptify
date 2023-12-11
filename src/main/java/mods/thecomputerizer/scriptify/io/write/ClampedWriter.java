@@ -4,10 +4,10 @@ import lombok.Getter;
 import lombok.Setter;
 import mods.thecomputerizer.scriptify.util.CollectionBundle;
 import mods.thecomputerizer.scriptify.util.Misc;
-import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -21,7 +21,6 @@ public class ClampedWriter extends FileWriter {
     @Setter private String strClose;
     @Setter private String strOpen;
     @Setter private String strSeparator;
-    @Setter private boolean forceAppend;
     @Setter private boolean needsSemicolon;
     @Setter private boolean disableSpaces;
 
@@ -46,17 +45,29 @@ public class ClampedWriter extends FileWriter {
         for(E thing : things) addWriter(toWriter.apply(thing));
     }
 
+    @Override
+    public void collectImports(Set<String> imports) {
+        for(FileWriter writer : this.writers) writer.collectImports(imports);
+    }
+
+    @Override
+    public void collectPreprocessors(Set<String> preprocessors) {
+        for(FileWriter writer : this.writers) writer.collectPreprocessors(preprocessors);
+    }
+
     private String getStart() {
         return Misc.getNullable(this.prefix,this.prefix,"")+this.strOpen +
                 Misc.getEither(this.disableSpaces,""," ");
     }
 
-    private String getSeparator(boolean removeSpaces) {
-        return Misc.getEither(removeSpaces,this.strSeparator.replaceAll(" ",""),this.strSeparator);
+    private String getSeparator() {
+        return this.strSeparator;
     }
 
-    private String getEnd() {
-        return this.strClose +(this.needsSemicolon ? ";" : "");
+    private String getEnd(boolean removeSpaces) {
+        String end = this.strClose +(this.needsSemicolon ? ";" : "");
+        if(removeSpaces) end = end.replaceFirst(" ","");
+        return end;
     }
 
     @Override
@@ -67,27 +78,22 @@ public class ClampedWriter extends FileWriter {
 
     @Override
     public void writeLines(List<String> lines) {
-        if(this.forceAppend) {
-            List<String> subLines = new ArrayList<>();
-            writeSubs(subLines,true);
-            write(lines,TextUtil.listToString(subLines,"").replaceAll("\t",""),true);
-        } else writeSubs(lines,false);
-    }
-
-    private void writeSubs(List<String> lines, boolean removeSpaces) {
+        boolean newLine = isNewLine();
+        boolean elementNewLine = false;
         write(lines,getStart(),true,false);
         int i = 0;
         for(FileWriter writer : this.writers) {
-            if(writer instanceof ClampedWriter) writer.setNewLine(true);
             writer.writeLines(lines);
+            if(writer.isNewLine()) elementNewLine = true;
             i++;
             if(i<this.writers.size()) {
-                boolean newLine = isNewLine();
                 setNewLine(false);
-                write(lines,getSeparator(removeSpaces),true,true);
+                write(lines,getSeparator(),true,true);
                 setNewLine(newLine);
             }
         }
-        write(lines,getEnd(),true,true);
+        setNewLine(elementNewLine);
+        write(lines,getEnd(elementNewLine),true,true);
+        setNewLine(newLine);
     }
 }

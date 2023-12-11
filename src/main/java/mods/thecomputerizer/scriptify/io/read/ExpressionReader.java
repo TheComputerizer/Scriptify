@@ -1,17 +1,17 @@
 package mods.thecomputerizer.scriptify.io.read;
 
-import crafttweaker.zenscript.GlobalRegistry;
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
+import mods.thecomputerizer.scriptify.io.data.ExpressionCallHolder;
+import mods.thecomputerizer.scriptify.io.data.ExpressionCastHolder;
 import mods.thecomputerizer.scriptify.mixin.access.*;
 import mods.thecomputerizer.scriptify.util.Misc;
+import mods.thecomputerizer.scriptify.util.Patterns;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import stanhebben.zenscript.compiler.IEnvironmentGlobal;
 import stanhebben.zenscript.expression.*;
 import stanhebben.zenscript.expression.partial.IPartialExpression;
 import stanhebben.zenscript.parser.expression.*;
-import stanhebben.zenscript.symbols.IZenSymbol;
-import stanhebben.zenscript.symbols.SymbolPackage;
 import stanhebben.zenscript.symbols.SymbolType;
 import stanhebben.zenscript.type.ZenType;
 import stanhebben.zenscript.type.ZenTypeArray;
@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Getter
-public class ExpressionReader implements FileReader<String> {
+public class ExpressionReader extends FileReader {
 
     private final IEnvironmentGlobal environment;
     private final Expression expression;
@@ -32,7 +32,6 @@ public class ExpressionReader implements FileReader<String> {
     public ExpressionReader(ParsedExpression parsed, IEnvironmentGlobal environment) {
         this.environment = environment;
         this.expression = getExpression(parsed);
-        ScriptifyRef.LOGGER.error("PARSED CLASS {}",parsed);
     }
 
     public ExpressionReader(Expression expression, IEnvironmentGlobal environment) {
@@ -42,11 +41,17 @@ public class ExpressionReader implements FileReader<String> {
 
     private Expression checkCast(Expression ex) {
         if(ex instanceof ExpressionAs) {
-            ExpressionAs as = (ExpressionAs)ex;
-            ExpressionAsAccessor access = (ExpressionAsAccessor)as;
-            return access.getValue().cast(as.getPosition(),this.environment,access.getCastingRule().getResultingType());
+            ExpressionAsAccessor access = (ExpressionAsAccessor)ex;
+            Expression value = access.getValue();
+            ZenType result = checkMapType(value.getType(),access.getCastingRule().getResultingType());
+            return new ExpressionCastHolder(value.cast(ex.getPosition(),this.environment,result),result);
         }
         return ex;
+    }
+
+    private ZenType checkMapType(ZenType valueType, ZenType resultType) {
+        return valueType instanceof ZenTypeAssociative && !(resultType instanceof ZenTypeAssociative) ?
+                new ZenTypeAssociative(resultType,((ZenTypeAssociative)valueType).getKeyType()) : resultType;
     }
 
     @Override
@@ -64,6 +69,9 @@ public class ExpressionReader implements FileReader<String> {
         if(expression instanceof ParsedExpressionMap) return getMapExpression((ParsedExpressionMap)expression);
         if(expression instanceof ParsedExpressionMember) return getMemberExpression((ParsedExpressionMember)expression);
         if(expression instanceof ParsedExpressionValue) return ((ParsedExpressionValueAccessor)expression).getValue();
+        if(expression instanceof ParsedExpressionVariable)
+            return new ExpressionString(expression.getPosition(),((ParsedExpressionVariableAccessor)expression).getName());
+        ScriptifyRef.LOGGER.error("Making null expression for unknown parsed class {}",expression.getClass());
         return makeNullExpression();
     }
 
@@ -85,21 +93,24 @@ public class ExpressionReader implements FileReader<String> {
 
     private Expression getCallExpression(ParsedExpressionCall call) {
         ParsedExpressionCallAccessor access = (ParsedExpressionCallAccessor)call;
+        ParsedExpression parsedReceiver =  access.getReceiver();
+        String name = parsedReceiver instanceof ParsedExpressionMember ?
+                ((ParsedExpressionMemberAccessor)parsedReceiver).getMember() : "";
         Expression receiver = getExpression(access.getReceiver());
-        ZenType type = receiver.getType();
-        ScriptifyRef.LOGGER.error("TYPE IS {} and receiver is class {}",type,receiver.getClass());
+        Expression[] args = new Expression[access.getArguments().size()];
         for(int i=0; i<access.getArguments().size(); i++) {
             ParsedExpression parsed = access.getArguments().get(i);
-            Expression ex;
+            Expression ex = null;
             if(parsed instanceof ParsedExpressionMap) {
-                IZenSymbol symbol = ((SymbolPackage)((SymbolPackage)GlobalRegistry.getRoot().get("crafttweaker")).get("data")).get("IData");
-                ex = predict(parsed,((SymbolType)symbol).getType());
+                SymbolType dataSymbol = getSymbolFromClassName("crafttweaker.data.IData");
+                if(Objects.nonNull(dataSymbol)) {
+                    ex = predict(parsed,dataSymbol.getType());
+                }
             }
-            else ex = getExpression(parsed);
-            ScriptifyRef.LOGGER.error("ARG PARTIAL CLASS IS TYPE {} AND CLASS {}",ex.getType(),ex.getClass());
-            ((ExpressionCallStaticAccessor)receiver).getArguments()[i] = ex;
+            if(Objects.isNull(ex)) ex = getExpression(parsed);
+            args[i] = ex;
         }
-        return receiver;
+        return new ExpressionCallHolder(receiver,name,args);
     }
 
     private Expression getCastExpression(ParsedExpressionCast cast) {
@@ -121,8 +132,7 @@ public class ExpressionReader implements FileReader<String> {
     }
 
     private Expression getMemberExpression(ParsedExpressionMember member) {
-        ParsedExpressionMemberAccessor access = (ParsedExpressionMemberAccessor)member;
-        return getExpression(access.getValue());
+        return getExpression(((ParsedExpressionMemberAccessor)member).getValue());
     }
 
     public ZenType getType() {
@@ -135,9 +145,9 @@ public class ExpressionReader implements FileReader<String> {
 
     private Expression predict(ParsedExpression parsed, ZenType predictedType) {
         if(parsed instanceof ParsedExpressionArray)
-            return predictArrayType((ParsedExpressionArray)parsed,predictedType);
+            return checkCast(predictArrayType((ParsedExpressionArray)parsed,predictedType));
         if(parsed instanceof ParsedExpressionMap)
-            return predictMapType((ParsedExpressionMap)parsed,predictedType);
+            return checkCast(predictMapType((ParsedExpressionMap)parsed,predictedType));
         return getExpression(parsed);
     }
 
@@ -171,7 +181,7 @@ public class ExpressionReader implements FileReader<String> {
         if(predictedType instanceof ZenTypeAssociative) mapType = (ZenTypeAssociative)predictedType;
         else {
             castingRule = ZenType.ANYMAP.getCastingRule(predictedType,this.environment);
-            if(castingRule != null) {
+            if(Objects.nonNull(castingRule)) {
                 if(castingRule.getInputType() instanceof ZenTypeAssociative)
                     mapType = (ZenTypeAssociative) castingRule.getInputType();
                 else this.environment.error(map.getPosition(),"Caster found for any[any] but its input is not "+
