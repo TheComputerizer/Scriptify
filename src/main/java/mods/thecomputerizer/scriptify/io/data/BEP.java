@@ -3,6 +3,7 @@ package mods.thecomputerizer.scriptify.io.data;
 import crafttweaker.api.item.IItemStack;
 import crafttweaker.api.liquid.ILiquidStack;
 import crafttweaker.api.minecraft.CraftTweakerMC;
+import crafttweaker.api.oredict.IOreDictEntry;
 import crafttweaker.mc1120.oredict.MCOreDictEntry;
 import lombok.Getter;
 import lombok.Setter;
@@ -46,8 +47,8 @@ public class BEP {
         return of(CraftTweakerMC.getItemStack(stack));
     }
 
-    public static BEP of(MCOreDictEntry oreDictEntry) {
-        return new BEP("ore",oreDictEntry.getId());
+    public static BEP of(IOreDictEntry oreDictEntry) {
+        return new BEP("ore",oreDictEntry.getName());
     }
 
     public static BEP of(String str) {
@@ -65,7 +66,7 @@ public class BEP {
         if(obj instanceof ILiquidStack) return of((ILiquidStack)obj);
         if(obj instanceof ItemStack) return of((ItemStack)obj);
         if(obj instanceof IItemStack) return of((IItemStack)obj);
-        if(obj instanceof MCOreDictEntry) return of((MCOreDictEntry)obj);
+        if(obj instanceof IOreDictEntry) return of((MCOreDictEntry)obj);
         if(obj instanceof String) return of(obj.toString());
         return null;
     }
@@ -83,12 +84,20 @@ public class BEP {
         this.amount = amount;
     }
 
-    public FluidStack asFluid() {
+    public FluidStack asFluidStack() {
         if(this.amount==0 || Objects.isNull(this.elements) || this.elements.length<2) return null;
         return FluidRegistry.getFluidStack(this.elements[1],this.amount);
     }
 
-    public ItemStack asItem() {
+    public IItemStack asIItemStack() {
+        return CraftTweakerMC.getIItemStack(asItemStack());
+    }
+
+    public ILiquidStack asILiquidStack() {
+        return CraftTweakerMC.getILiquidStack(asFluidStack());
+    }
+
+    public ItemStack asItemStack() {
         if(this.amount==0 || Objects.isNull(this.elements) || this.elements.length<2) return ItemStack.EMPTY;
         int meta = Objects.nonNull(this.extra) ? Integer.parseInt(this.extra) : 0;
         ResourceLocation resource = new ResourceLocation(this.elements[0],this.elements[1]);
@@ -96,7 +105,7 @@ public class BEP {
         return Objects.nonNull(item) ? new ItemStack(item,this.amount,meta) : ItemStack.EMPTY;
     }
 
-    public MCOreDictEntry asOreDictEntry() {
+    public IOreDictEntry asIOreDictEntry() {
         if(this.amount==0 || Objects.isNull(this.elements) || this.elements.length<2) return null;
         return MCOreDictEntry.getFromIngredient(new OreIngredient(this.elements[1]));
     }

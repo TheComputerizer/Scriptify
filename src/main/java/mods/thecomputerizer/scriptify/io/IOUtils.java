@@ -1,16 +1,22 @@
-package mods.thecomputerizer.scriptify.util;
+package mods.thecomputerizer.scriptify.io;
 
 import crafttweaker.api.item.IIngredient;
 import crafttweaker.api.item.IItemStack;
+import crafttweaker.api.item.IngredientUnknown;
 import crafttweaker.api.liquid.ILiquidStack;
+import crafttweaker.api.minecraft.CraftTweakerMC;
 import crafttweaker.api.oredict.IOreDict;
 import crafttweaker.api.oredict.IOreDictEntry;
 import crafttweaker.mc1120.oredict.MCOreDictEntry;
 import mods.thecomputerizer.scriptify.Scriptify;
+import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.data.BEP;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.io.write.PartialWriter;
+import mods.thecomputerizer.scriptify.util.Misc;
+import mods.thecomputerizer.scriptify.util.Patterns;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Tuple;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -18,6 +24,10 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.annotations.OperatorType;
+import stanhebben.zenscript.type.ZenType;
+import stanhebben.zenscript.type.ZenTypeArray;
+import stanhebben.zenscript.type.ZenTypeAssociative;
+import stanhebben.zenscript.type.ZenTypeFunction;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -40,19 +50,20 @@ public class IOUtils {
     }
 
     public static void addClassAliases(Class<?> clazz, Object ... aliasArgs) {
+        if(CLASS_ALIASES.containsKey(clazz)) return;
         List<Object> aliasArgList = new ArrayList<>(Arrays.asList(aliasArgs));
         aliasArgList.add(getClassNames(clazz));
-        HashSet<String> aliasSet = new HashSet<>();
+        Set<String> aliasSet = new HashSet<>();
         for(Object arg : aliasArgList) {
-            if(arg instanceof String) Misc.lowerCaseAddCollection(aliasSet,((String)arg).replaceFirst("crafttweaker.api","crafttweaker"));
+            if(arg instanceof String) Misc.lowerCaseAddCollection(aliasSet,fixClassName((String)arg));
             else if(arg instanceof Tuple<?,?>) {
                 Tuple<?,?> argTuple = (Tuple<?,?>)arg;
-                Misc.lowerCaseAddCollection(aliasSet,argTuple.getFirst().toString().replaceFirst("crafttweaker.api","crafttweaker"));
-                Misc.lowerCaseAddCollection(aliasSet,argTuple.getSecond().toString().replaceFirst("crafttweaker.api","crafttweaker"));
+                Misc.lowerCaseAddCollection(aliasSet,fixClassName(argTuple.getFirst().toString()));
+                Misc.lowerCaseAddCollection(aliasSet,fixClassName(argTuple.getSecond().toString()));
             } else if(arg instanceof String[]) {
                 for(String argArrElement : (String[]) arg)
-                    Misc.lowerCaseAddCollection(aliasSet,argArrElement.replaceFirst("crafttweaker.api","crafttweaker"));
-            } else Misc.lowerCaseAddCollection(aliasSet,arg.toString().replaceFirst("crafttweaker.api","crafttweaker"));
+                    Misc.lowerCaseAddCollection(aliasSet,fixClassName(argArrElement));
+            } else Misc.lowerCaseAddCollection(aliasSet,fixClassName(arg.toString()));
         }
         CLASS_ALIASES.put(clazz,aliasSet);
         Scriptify.logDebug(IOUtils.class,null,clazz.getName(),TextUtil.compileCollection(aliasSet));
@@ -71,10 +82,20 @@ public class IOUtils {
         return combined;
     }
 
+    private static String fixClassName(String className) {
+        return className.toLowerCase().replaceFirst("crafttweaker.api","crafttweaker");
+    }
+
+    public static String getBaseTypeName(ZenType type) {
+        String name = type.getName();
+        if(type instanceof ZenTypeFunction) name = ((ZenTypeFunction)type).getReturnType().getName();
+        return name.replaceFirst("ZenTypeNative: ", "");
+    }
+
     public static Class<?> getClassFromAlias(String alias) {
         Class<?> clazz = Object.class;
         for(Map.Entry<Class<?>,Set<String>> aliasEntry : CLASS_ALIASES.entrySet()) {
-            if(Patterns.matchesAny(alias, aliasEntry.getValue())) {
+            if(Patterns.matchesAny(alias,aliasEntry.getValue())) {
                 clazz = aliasEntry.getKey();
                 break;
             }
@@ -84,6 +105,30 @@ public class IOUtils {
 
     private static Tuple<String,String> getClassNames(Class<?> clazz) {
         return new Tuple<>(clazz.getName(),clazz.getSimpleName());
+    }
+
+    public static IIngredient getFirstOreDictEntry(ItemStack stack) {
+        return getOreDictEntryFromIndex(stack,0);
+    }
+
+    /**
+     * Returns IIngedient since an IngredientUnknown instance is returned when no entries are found
+     */
+    public static IIngredient getOreDictEntryFromIndex(ItemStack stack, int index) {
+        Item item = stack.getItem();
+        int meta = stack.getMetadata();
+        IOreDictEntry entry = null;
+        try {
+            int[] oreIDs = OreDictionary.getOreIDs(stack);
+            if(oreIDs.length==0) Scriptify.logError(IOUtils.class,"oredict",null,item.getRegistryName(),meta);
+            else {
+                index = index<0 ? 0 : (index>=oreIDs.length ? oreIDs.length-1 : index);
+                entry = CraftTweakerMC.getOreDict(OreDictionary.getOreName(index));
+            }
+        } catch(IllegalArgumentException ex) {
+            Scriptify.logError(IOUtils.class,"oredict",ex,item.getRegistryName(),meta);
+        }
+        return Objects.nonNull(entry) ? entry : IngredientUnknown.INSTANCE;
     }
 
     public static Function<String,Object> getReaderFunc(String name) {
@@ -135,12 +180,12 @@ public class IOUtils {
 
     private static void loadDefaultClassAliases() {
         Scriptify.logInfo(IOUtils.class);
-        addBasicClassAliases(Byte.class,Character.class,Double.class,Float.class,Long.class,Short.class,String.class);
+        addBasicClassAliases(Byte.class,Character.class,Double.class,Float.class,Long.class,Short.class,String.class,Void.class);
         addClassAliases(Boolean.class,"bool");
         addClassAliases(Integer.class,"int");
-        addClassAliases(ItemStack.class,getClassNames(IItemStack.class),"item");
-        addClassAliases(FluidStack.class,getClassNames(ILiquidStack.class),"liquid","fluid");
-        addClassAliases(MCOreDictEntry.class,getClassNames(IOreDictEntry.class),getClassNames(IOreDict.class),
+        addClassAliases(IItemStack.class,getClassNames(ItemStack.class),"item");
+        addClassAliases(ILiquidStack.class,getClassNames(FluidStack.class),"liquid","fluid");
+        addClassAliases(IOreDictEntry.class,getClassNames(MCOreDictEntry.class),getClassNames(IOreDict.class),
                 getClassNames(OreDictionary.class),"ore");
         addClassAliases(IIngredient.class,"ingredient","ingr","ing");
     }
@@ -165,19 +210,19 @@ public class IOUtils {
         WRITER_MAP.put("item",obj -> {
             PartialWriter<ItemStack> writer = new PartialWriter<>();
             BEP bep = BEP.of(obj);
-            writer.setElement(Objects.isNull(bep) ? ItemStack.EMPTY : bep.asItem());
+            writer.setElement(Objects.isNull(bep) ? ItemStack.EMPTY : bep.asItemStack());
             return writer;
         });
         WRITER_MAP.put("liquid",obj -> {
             PartialWriter<FluidStack> writer = new PartialWriter<>();
             BEP bep = BEP.of(obj);
-            writer.setElement(Objects.isNull(bep) ? new FluidStack(FluidRegistry.WATER,0) : bep.asFluid());
+            writer.setElement(Objects.isNull(bep) ? new FluidStack(FluidRegistry.WATER,0) : bep.asFluidStack());
             return writer;
         });
         WRITER_MAP.put("ore",obj -> {
-            PartialWriter<MCOreDictEntry> writer = new PartialWriter<>();
+            PartialWriter<IOreDictEntry> writer = new PartialWriter<>();
             BEP bep = BEP.of(obj);
-            writer.setElement(Objects.isNull(bep) ? new MCOreDictEntry("logWood") : bep.asOreDictEntry());
+            writer.setElement(Objects.isNull(bep) ? new MCOreDictEntry("logWood") : bep.asIOreDictEntry());
             return writer;
         });
     }

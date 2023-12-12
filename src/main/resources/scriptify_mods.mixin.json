@@ -23,7 +23,8 @@
     "ParsedExpressionMemberAccessor",
     "ParsedExpressionValueAccessor",
     "ParsedExpressionVariableAccessor",
-    "StatementExpressionAccessor"
+    "StatementExpressionAccessor",
+    "SymbolJavaStaticFieldAccessor"
   ],
   "client": []
 }

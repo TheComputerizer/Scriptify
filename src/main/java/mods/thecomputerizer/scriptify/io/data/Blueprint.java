@@ -6,17 +6,20 @@ import crafttweaker.api.liquid.ILiquidStack;
 import crafttweaker.api.oredict.IOreDictEntry;
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.Scriptify;
+import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
 import mods.thecomputerizer.scriptify.io.write.ClampedWriter;
 import mods.thecomputerizer.scriptify.io.write.ExpressionWriter;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.util.Misc;
+import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.type.ZenType;
 
 import java.util.*;
 
-public class RecipeBlueprint {
+@Getter
+public class Blueprint {
 
     private static final List<String> RELOADABLE_MODS = Arrays.asList("vanilla","extendedcrafting");
     private static final Set<Class<?>> INGREDIENT_MATCHES = new HashSet<>(Arrays.asList(IOreDictEntry.class,
@@ -44,16 +47,31 @@ public class RecipeBlueprint {
         return false;
     }
 
-    @Getter private final String mod;
-    @Getter private final String className;
-    @Getter private final String methodName;
+    private final String className;
+    private final String methodName;
+    private final DynamicArray returnType;
     private final DynamicArray[] parameterTypes;
+    private final int firstOptionalIndex;
 
-    public RecipeBlueprint(String mod, String className, String methodName, String ... parameterTypeAliases) {
-        this.mod = mod;
+    public Blueprint(String className, String methodName, String returnType, String ... parameterTypeAliases) {
         this.className = className;
         this.methodName = methodName;
+        this.returnType = new DynamicArray(returnType);
         this.parameterTypes = parseParameterTypes(parameterTypeAliases);
+        this.firstOptionalIndex = findOptionalStart();
+    }
+
+    private int findOptionalStart() {
+        int optional = this.parameterTypes.length;
+        if(optional>0) {
+            for(int i=0; i<optional-1; i++) {
+                if(this.parameterTypes[i].isOptional()) {
+                    optional = i;
+                    break;
+                }
+            }
+        }
+        return optional;
     }
 
     public String getFirstTypeSimpleName() {
@@ -63,8 +81,28 @@ public class RecipeBlueprint {
                 StringUtils.repeat("]",type.getBracketCount());
     }
 
+    public String getMod() {
+        if(!this.className.contains(".")) return this.className;
+        int count = StringUtils.countMatches(this.className,'.');
+        if(count==1) return Misc.getLastSplit(this.className,".");
+        String chopped = this.className.substring(this.className.indexOf('.')+1);
+        return chopped.substring(0,chopped.indexOf('.')).trim().toLowerCase();
+    }
+
     public boolean isReloadable() {
-        return RELOADABLE_MODS.contains(this.mod);
+        return RELOADABLE_MODS.contains(getMod());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(getClass()!=o.getClass()) return false;
+        Blueprint other = (Blueprint)o;
+        if(this.className.matches(other.className) && this.methodName.matches(other.methodName) &&
+                this.returnType==other.returnType && this.parameterTypes.length==other.parameterTypes.length) {
+            for(int i=0; i<this.parameterTypes.length; i++)
+                if(this.parameterTypes[i]!=other.parameterTypes[i]) return false;
+        } else return false;
+        return true;
     }
 
     public boolean matches(String simpleClass, String otherMethod) {
@@ -84,16 +122,22 @@ public class RecipeBlueprint {
 
     @Override
     public String toString() {
-        return this.className+"#"+this.methodName;
+        String args = TextUtil.arrayToString(",",(Object[])this.parameterTypes);
+        args = Objects.nonNull(args) ? args : "";
+        return this.className+"#"+this.methodName+"("+args+")"+this.returnType;
     }
 
     public boolean verifyArgs(List<ExpressionReader> readers) {
-        for(int i=0; i<this.parameterTypes.length; i++) {
-            ZenType type = readers.get(i).getType();
-            DynamicArray parameter = this.parameterTypes[i];
-            if(!parameter.isValid(type)) {
-                Scriptify.logError(getClass(),null,null,i,type.getName(),parameter.getTypeClass().getName());
-                return false;
+        if(readers.size()<this.firstOptionalIndex) return false;
+        if(!this.className.matches("unknown")) {
+            for(int i=0; i<this.parameterTypes.length; i++) {
+                if(i+1>readers.size() && i>=this.firstOptionalIndex) break;
+                ZenType type = readers.get(i).getType();
+                DynamicArray parameter = this.parameterTypes[i];
+                if(!parameter.isValid(type)) {
+                    Scriptify.logError(getClass(),null,null,i,type.getName(), parameter.getTypeClass().getName());
+                    return false;
+                }
             }
         }
         Scriptify.logDebug(getClass());

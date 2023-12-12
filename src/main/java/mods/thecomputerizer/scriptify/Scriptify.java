@@ -1,9 +1,10 @@
 package mods.thecomputerizer.scriptify;
 
 import mods.thecomputerizer.scriptify.command.ScriptifyCommands;
+import mods.thecomputerizer.scriptify.io.data.ExpressionDataHandler;
 import mods.thecomputerizer.scriptify.network.PacketQueryContainer;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
-import mods.thecomputerizer.scriptify.util.IOUtils;
+import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.network.NetworkHandler;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
@@ -40,6 +41,7 @@ public class Scriptify {
 
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
+        ExpressionDataHandler.registerBlueprints();
         event.registerServerCommand(new ScriptifyCommands());
     }
 

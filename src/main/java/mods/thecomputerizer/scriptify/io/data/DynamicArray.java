@@ -2,7 +2,8 @@ package mods.thecomputerizer.scriptify.io.data;
 
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.util.IOUtils;
+import mods.thecomputerizer.scriptify.ScriptifyRef;
+import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.scriptify.util.Patterns;
 import org.apache.commons.lang3.StringUtils;
@@ -18,6 +19,7 @@ public class DynamicArray {
     private final int bracketCount;
     private final String className;
     private final Class<?> typeClass;
+    private final boolean isOptional;
 
     public DynamicArray(String unparsed) {
         this(StringUtils.countMatches(unparsed,'['),unparsed.replaceAll(Patterns.ARRAY_DEF.pattern(),""));
@@ -25,9 +27,12 @@ public class DynamicArray {
 
     public DynamicArray(int bracketCount, String type) {
         this.bracketCount = bracketCount;
+        this.isOptional = type.startsWith("@");
+        if(this.isOptional) type = type.substring(1);
         this.className = IOUtils.getClassFromAlias(type).getName();
         this.typeClass = makeTypeClass();
     }
+
 
     public boolean isValid(ZenType type) {
         if(Objects.isNull(type)) {
@@ -37,7 +42,7 @@ public class DynamicArray {
         if(this.className.matches(Object.class.getName()))
             Scriptify.logWarn(getClass(),"type",this.typeClass.getName());
         Class<?> typeClass = IOUtils.getClassFromAlias(type.getName());
-        return RecipeBlueprint.checkSpecialMatch(this.typeClass,typeClass) || this.typeClass.isAssignableFrom(typeClass);
+        return Blueprint.checkSpecialMatch(this.typeClass,typeClass) || this.typeClass.isAssignableFrom(typeClass);
     }
 
     private Class<?> makeTypeClass() {
@@ -56,7 +61,12 @@ public class DynamicArray {
     }
 
     @Override
+    public boolean equals(Object o) {
+        return getClass()==o.getClass() && this.typeClass.getName().matches(((DynamicArray)o).typeClass.getName());
+    }
+
+    @Override
     public String toString() {
-        return super.toString()+" with type "+getTypeClass().toString();
+        return (this.isOptional ? "@" : "")+this.typeClass.getName();
     }
 }

@@ -4,9 +4,9 @@ import crafttweaker.zenscript.GlobalRegistry;
 import lombok.Setter;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
-import mods.thecomputerizer.scriptify.io.data.ParsedRecipeData;
-import mods.thecomputerizer.scriptify.io.data.RecipeDataHandler;
-import mods.thecomputerizer.scriptify.util.IOUtils;
+import mods.thecomputerizer.scriptify.io.data.ExpressionData;
+import mods.thecomputerizer.scriptify.io.data.ExpressionDataHandler;
+import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 import stanhebben.zenscript.ZenModule;
@@ -113,20 +113,20 @@ public class ZenFileReader extends FileReader {
         for(Statement statement : statements) new StatementReader(getEnvironment(),statement).copy(lines);
     }
 
-    public List<ParsedRecipeData> tryParsingRecipeData() {
+    public List<ExpressionData> tryParsingRecipeData() {
         return parseFilteredRecipeData(new ArrayList<>(),new ArrayList<>());
     }
 
     @SuppressWarnings("unchecked")
-    public List<ParsedRecipeData> parseFilteredRecipeData(Collection<String> classMatches, Collection<String> methodMatches) {
+    public List<ExpressionData> parseFilteredRecipeData(Collection<String> classMatches, Collection<String> methodMatches) {
         IOUtils.lintCollections(classMatches,methodMatches);
-        List<ParsedRecipeData> dataList = new ArrayList<>();
+        List<ExpressionData> dataList = new ArrayList<>();
         for(Statement statement : getStatements()) {
             if(this.debug) ScriptifyRef.LOGGER.debug("Statement class is {}",statement.getClass().getName());
             if(statement instanceof StatementExpression) {
-                ParsedRecipeData data = null;
+                ExpressionData data = null;
                 try {
-                    data = RecipeDataHandler.matchFilteredExpression(this,(StatementExpression)statement,
+                    data = ExpressionDataHandler.matchFilteredExpression(this,(StatementExpression)statement,
                             classMatches,methodMatches,this.debug);
                 } catch (IllegalArgumentException ex) {
                     Scriptify.logError(getClass(),"parse",ex);

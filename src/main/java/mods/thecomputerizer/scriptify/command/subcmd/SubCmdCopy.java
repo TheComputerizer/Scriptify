@@ -1,7 +1,7 @@
 package mods.thecomputerizer.scriptify.command.subcmd;
 
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.io.data.ParsedRecipeData;
+import mods.thecomputerizer.scriptify.io.data.ExpressionData;
 import mods.thecomputerizer.scriptify.io.read.ZenFileReader;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.io.write.ZenFileWriter;
@@ -22,9 +22,9 @@ public class SubCmdCopy extends SubCmd {
                 Type.PARAMETER_ZEN_FILE_INPUTS,Type.PARAMETER_ZEN_FILE_OUTPUTS);
     }
 
-    private Map<String,List<ParsedRecipeData>> applySort(Map<ZenFileReader,List<ParsedRecipeData>> dataMap, String sortBy) {
-        Map<String,List<ParsedRecipeData>> sorted = new HashMap<>();
-        Iterable<List<ParsedRecipeData>> dataItr = dataMap.values();
+    private Map<String,List<ExpressionData>> applySort(Map<ZenFileReader,List<ExpressionData>> dataMap, String sortBy) {
+        Map<String,List<ExpressionData>> sorted = new HashMap<>();
+        Iterable<List<ExpressionData>> dataItr = dataMap.values();
         if(sortBy.startsWith("class"))
             applySort(sorted,dataItr,data -> data.getBlueprint().getClassName());
         else if(sortBy.startsWith("method"))
@@ -37,10 +37,10 @@ public class SubCmdCopy extends SubCmd {
         return sorted;
     }
 
-    private void applySort(Map<String,List<ParsedRecipeData>> outputMap, Iterable<List<ParsedRecipeData>> parsedIter,
-                           Function<ParsedRecipeData,String> stringFunc) {
-        for(List<ParsedRecipeData> dataList : parsedIter) {
-            for(ParsedRecipeData data : dataList) {
+    private void applySort(Map<String,List<ExpressionData>> outputMap, Iterable<List<ExpressionData>> parsedIter,
+                           Function<ExpressionData,String> stringFunc) {
+        for(List<ExpressionData> dataList : parsedIter) {
+            for(ExpressionData data : dataList) {
                 String str = stringFunc.apply(data);
                 outputMap.putIfAbsent(str,new ArrayList<>());
                 outputMap.get(str).add(data);
@@ -51,7 +51,7 @@ public class SubCmdCopy extends SubCmd {
     @Override
     public void execute() throws CommandException {
         defineParameterSets();
-        Map<ZenFileReader,List<ParsedRecipeData>> dataMap = parseInputFiles(getParameterAsFileList("zenFileInput"));
+        Map<ZenFileReader,List<ExpressionData>> dataMap = parseInputFiles(getParameterAsFileList("zenFileInput"));
         if(dataMap.isEmpty()) throwGeneric(array("copy","data"));
         runEnhancements(dataMap,getParameterAsList("enhancements"));
         runOutput(dataMap,getParameterAsString("zenFileOutput"));
@@ -74,8 +74,8 @@ public class SubCmdCopy extends SubCmd {
         return 0;
     }
 
-    private Map<ZenFileReader,List<ParsedRecipeData>> parseInputFiles(List<String> inputFilePaths) throws CommandException {
-        Map<ZenFileReader,List<ParsedRecipeData>> map = new HashMap<>();
+    private Map<ZenFileReader,List<ExpressionData>> parseInputFiles(List<String> inputFilePaths) throws CommandException {
+        Map<ZenFileReader,List<ExpressionData>> map = new HashMap<>();
         List<String> classNames = getParameterAsList("classNames");
         List<String> methodNames = getParameterAsList("methodNames");
         if(inputFilePaths.isEmpty()) throwGeneric(array("copy","input"));
@@ -83,7 +83,7 @@ public class SubCmdCopy extends SubCmd {
             ZenFileReader reader = new ZenFileReader(path);
             reader.setDebug(true);
             if(Objects.nonNull(reader.getClassName())) {
-                List<ParsedRecipeData> data = new ArrayList<>();
+                List<ExpressionData> data = new ArrayList<>();
                 try {
                     data = reader.parseFilteredRecipeData(classNames,methodNames);
                 } catch(Exception ex) {
@@ -96,22 +96,22 @@ public class SubCmdCopy extends SubCmd {
         return map;
     }
 
-    private void runEnhancements(Map<ZenFileReader,List<ParsedRecipeData>> dataMap, List<String> enhancements) {
+    private void runEnhancements(Map<ZenFileReader,List<ExpressionData>> dataMap, List<String> enhancements) {
     }
 
-    private void runOutput(Map<ZenFileReader,List<ParsedRecipeData>> dataMap, String output) throws CommandException {
+    private void runOutput(Map<ZenFileReader,List<ExpressionData>> dataMap, String output) throws CommandException {
         if(StringUtils.isBlank(output)) throwGeneric(array("copy","output"));
-        Map<String,List<ParsedRecipeData>> sortedDataMap = applySort(dataMap,getParameterAsString("sortBy"));
+        Map<String,List<ExpressionData>> sortedDataMap = applySort(dataMap,getParameterAsString("sortBy"));
         if(output.endsWith(".zs")) writeFile(sortedDataMap,output);
         else writeDirectory(sortedDataMap,output);
     }
 
-    private void writeDirectory(Map<String,List<ParsedRecipeData>> sortedDataMap, String dirPath) {
-        for(Map.Entry<String,List<ParsedRecipeData>> sortedEntry : sortedDataMap.entrySet()) {
+    private void writeDirectory(Map<String,List<ExpressionData>> sortedDataMap, String dirPath) {
+        for(Map.Entry<String,List<ExpressionData>> sortedEntry : sortedDataMap.entrySet()) {
             String sortKey = sortedEntry.getKey();
             ZenFileWriter writer = new ZenFileWriter();
             writer.getComments().set("Automagically Generated",String.format("Sort Element `$1%s`",sortKey));
-            for(ParsedRecipeData data : sortedEntry.getValue()) {
+            for(ExpressionData data : sortedEntry.getValue()) {
                 writer.getWriters().add(data.makeWriter());
                 data.finalizeWriter(writer);
             }
@@ -121,11 +121,11 @@ public class SubCmdCopy extends SubCmd {
         sendGeneric(this.sender,array("copy","write"),sortedDataMap.size(),dirPath);
     }
 
-    private void writeFile(Map<String,List<ParsedRecipeData>> sortedDataMap, String filePath) {
+    private void writeFile(Map<String,List<ExpressionData>> sortedDataMap, String filePath) {
         ZenFileWriter zenWriter = new ZenFileWriter();
-        for(Map.Entry<String,List<ParsedRecipeData>> sortedEntry : sortedDataMap.entrySet()) {
+        for(Map.Entry<String,List<ExpressionData>> sortedEntry : sortedDataMap.entrySet()) {
             boolean first = true;
-            for(ParsedRecipeData data : sortedEntry.getValue()) {
+            for(ExpressionData data : sortedEntry.getValue()) {
                 FileWriter writer = data.makeWriter();
                 if(first) {
                     writer.getComments().set("Automagically Generated","Sort Element `"+sortedEntry.getKey()+"`");

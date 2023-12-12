@@ -4,7 +4,6 @@ import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 import net.minecraft.util.Tuple;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -231,7 +230,7 @@ public class ScriptifyConfigHelper {
         public CacheState(BiConsumer<File,Map<String,?>> consumer, String categoryField, String fileField) {
             this.state = new AtomicBoolean(true);
             this.consumer = consumer;
-            this.configFileFields = getConfigFields(getInnerClass(categoryField),categoryField,fileField);
+            this.configFileFields = getConfigFields(Misc.getInnerClass(ScriptifyConfig.class,categoryField),categoryField,fileField);
         }
 
         public void applyConsumer(String type, Map<String,?> cacheMap) {
@@ -253,23 +252,12 @@ public class ScriptifyConfigHelper {
 
         private Tuple<Field,Field> getConfigFields(Class<?> categoryClass, String categoryField, String fileField) {
             if(Misc.anyNull(categoryClass,categoryField,fileField)) return null;
-            Field category = getField(ScriptifyConfig.class,categoryField.toUpperCase());
+            Field category = Misc.getField(ScriptifyConfig.class,categoryField.toUpperCase());
             if(Objects.nonNull(category)) {
-                Field filePath = getField(categoryClass,fileField);
+                Field filePath = Misc.getField(categoryClass,fileField);
                 if(Objects.nonNull(filePath)) return new Tuple<>(category,filePath);
             }
             return null;
-        }
-
-        private Field getField(@Nullable Class<?> clazz, String fieldName) {
-            return Misc.applyNullable(clazz,c -> {
-                try {
-                    return c.getDeclaredField(fieldName);
-                } catch(NoSuchFieldException ex) {
-                    Scriptify.logError(ScriptifyConfigHelper.class,"field",ex,fieldName,c.getName());
-                    return null;
-                }
-            });
         }
 
         private File getFile() {
@@ -277,27 +265,9 @@ public class ScriptifyConfigHelper {
             return this.cachedFile;
         }
 
-        private @Nullable Object getFieldInstance(@Nullable Object instance, @Nullable Field field) {
-            return Misc.applyNullable(field,f -> {
-                try {
-                    return f.get(instance);
-                } catch(IllegalAccessException ex) {
-                    Scriptify.logError(ScriptifyConfigHelper.class,"instance",ex,f.getName(),f.getDeclaringClass());
-                    return null;
-                }
-            });
-        }
-
-        private Class<?> getInnerClass(@Nullable String name) {
-            if(Objects.isNull(name)) return null;
-            for(Class<?> categoryClass : ScriptifyConfig.class.getDeclaredClasses())
-                if(categoryClass.getSimpleName().matches(name)) return categoryClass;
-            return null;
-        }
-
         private @Nullable Object getSecondFieldInstance(@Nullable Tuple<Field,Field> fields) {
             if(Objects.isNull(fields)) return null;
-            return getFieldInstance(getFieldInstance(null,fields.getFirst()),fields.getSecond());
+            return Misc.getFieldInstance(Misc.getFieldInstance(null,fields.getFirst()),fields.getSecond());
         }
 
         private boolean needsCache() {

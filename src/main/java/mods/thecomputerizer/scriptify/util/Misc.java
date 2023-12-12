@@ -3,12 +3,17 @@ package mods.thecomputerizer.scriptify.util;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
+import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
+import stanhebben.zenscript.annotations.Optional;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -94,13 +99,14 @@ public class Misc {
         addLogKey(map,"log.scriptify.ioutils.debug=Added aliases for class %1$s - %2$s");
         addLogKey(map,"log.scriptify.ioutils.error=Unable to create reference array of class %1$s");
         addLogKey(map,"log.scriptify.ioutils.info=Loading default class aliases");
-        addLogKey(map,"log.scriptify.recipeblueprint.debug=Recipe has been sucessfully verified!");
-        addLogKey(map,"log.scriptify.recipeblueprint.error=Argument at index %1$s of type %2$s did not match the expected blueprint of %3$s!");
-        addLogKey(map,"log.scriptify.recipedatahandler.info=Successfully located blueprint `%1$s`");
-        addLogKey(map,"log.scriptify.recipedatahandler.error.class=Unable to find recipe blueprints matching any known method name of classes %1$s!");
-        addLogKey(map,"log.scriptify.recipedatahandler.error.get=Unable to find matching recipe type for `%1$s#%2$s`!");
-        addLogKey(map,"log.scriptify.recipedatahandler.error.match=Expression of class `%1$s` cannot be parsed into recipe data!");
-        addLogKey(map,"log.scriptify.recipedatahandler.error.method=Unable to find recipe blueprints matching any known class name of methods %1$s!");
+        addLogKey(map,"log.scriptify.blueprint.debug=Recipe has been sucessfully verified!");
+        addLogKey(map,"log.scriptify.blueprint.error=Argument at index %1$s of type %2$s did not match the expected blueprint of %3$s!");
+        addLogKey(map,"log.scriptify.expressiondatahandler.info.match=Successfully located %1$s potential blueprints");
+        addLogKey(map,"log.scriptify.expressiondatahandler.info.unknown=Substituting unknown blueprint");
+        addLogKey(map,"log.scriptify.expressiondatahandler.error.class=Unable to find recipe blueprints matching any known method name of classes %1$s!");
+        addLogKey(map,"log.scriptify.expressiondatahandler.error.get=Unable to find matching recipe type for `%1$s#%2$s`!");
+        addLogKey(map,"log.scriptify.expressiondatahandler.error.match=Expression of class `%1$s` cannot be parsed into recipe data!");
+        addLogKey(map,"log.scriptify.expressiondatahandler.error.method=Unable to find recipe blueprints matching any known class name of methods %1$s!");
         addLogKey(map,"log.scriptify.scriptify.exception=Lang keys with no arguments are not supported!");
         addLogKey(map,"log.scriptify.scriptifyconfighelper.error.write=Cannot write cache to null or nonexistant file `%1$s`");
         addLogKey(map,"log.scriptify.scriptifyconfighelper.exception.arrays=Unable to cache arrays from file `%1$s`");
@@ -190,6 +196,40 @@ public class Misc {
             if(choice) return returns[i];
         }
         return returns[returns.length-1];
+    }
+
+    public static @Nullable Field getField(@Nullable Class<?> clazz, String fieldName) {
+        return Misc.applyNullable(clazz,c -> {
+            try {
+                return c.getDeclaredField(fieldName);
+            } catch(NoSuchFieldException ex) {
+                Scriptify.logError(Misc.class,"field",ex,fieldName,c.getName());
+                return null;
+            }
+        });
+    }
+
+    public static @Nullable Object getFieldInstance(@Nullable Field field) {
+        return getFieldInstance(null,field);
+    }
+
+    public static @Nullable Object getFieldInstance(@Nullable Object parent, @Nullable Field field) {
+        return Misc.applyNullable(field,f -> {
+            try {
+                return f.get(parent);
+            } catch(IllegalAccessException ex) {
+                Scriptify.logError(Misc.class,"instance",ex,f.getName(),f.getDeclaringClass());
+                return null;
+            }
+        });
+    }
+
+    public static Class<?> getInnerClass(Class<?> clazz, @Nullable String name) {
+        return Misc.applyNullable(name,s -> {
+            for(Class<?> categoryClass : clazz.getDeclaredClasses())
+                if(categoryClass.getSimpleName().matches(s)) return categoryClass;
+            return null;
+        });
     }
 
     public static String getLastSplit(String str, String splitBy) {
