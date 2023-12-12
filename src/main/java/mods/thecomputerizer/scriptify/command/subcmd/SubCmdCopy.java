@@ -1,9 +1,11 @@
 package mods.thecomputerizer.scriptify.command.subcmd;
 
 import mods.thecomputerizer.scriptify.Scriptify;
+import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.data.ExpressionData;
 import mods.thecomputerizer.scriptify.io.read.ZenFileReader;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
+import mods.thecomputerizer.scriptify.io.write.WorldWriter;
 import mods.thecomputerizer.scriptify.io.write.ZenFileWriter;
 import mods.thecomputerizer.scriptify.network.PacketSendContainerInfo;
 import mods.thecomputerizer.scriptify.util.Misc;
@@ -102,8 +104,15 @@ public class SubCmdCopy extends SubCmd {
     private void runOutput(Map<ZenFileReader,List<ExpressionData>> dataMap, String output) throws CommandException {
         if(StringUtils.isBlank(output)) throwGeneric(array("copy","output"));
         Map<String,List<ExpressionData>> sortedDataMap = applySort(dataMap,getParameterAsString("sortBy"));
-        if(output.endsWith(".zs")) writeFile(sortedDataMap,output);
-        else writeDirectory(sortedDataMap,output);
+        for(Map.Entry<String,List<ExpressionData>> sortedEntry : sortedDataMap.entrySet()) {
+            ScriptifyRef.LOGGER.error("TESTING EVALUATIONS FOR {}",sortedEntry.getKey());
+            for(ExpressionData data : sortedEntry.getValue()) {
+                ScriptifyRef.LOGGER.error("TESTING DATA WITH BLUEPRINT {}",data.getBlueprint());
+                new WorldWriter(data).writeToInventory();
+            }
+        }
+        //if(output.endsWith(".zs")) writeFile(sortedDataMap,output);
+        //else writeDirectory(sortedDataMap,output);
     }
 
     private void writeDirectory(Map<String,List<ExpressionData>> sortedDataMap, String dirPath) {
@@ -112,7 +121,7 @@ public class SubCmdCopy extends SubCmd {
             ZenFileWriter writer = new ZenFileWriter();
             writer.getComments().set("Automagically Generated",String.format("Sort Element `$1%s`",sortKey));
             for(ExpressionData data : sortedEntry.getValue()) {
-                writer.getWriters().add(data.makeWriter());
+                writer.getWriters().add(data.makeFileWriter());
                 data.finalizeWriter(writer);
             }
             writer.addPreProcessor("reloadable");
@@ -126,7 +135,7 @@ public class SubCmdCopy extends SubCmd {
         for(Map.Entry<String,List<ExpressionData>> sortedEntry : sortedDataMap.entrySet()) {
             boolean first = true;
             for(ExpressionData data : sortedEntry.getValue()) {
-                FileWriter writer = data.makeWriter();
+                FileWriter writer = data.makeFileWriter();
                 if(first) {
                     writer.getComments().set("Automagically Generated","Sort Element `"+sortedEntry.getKey()+"`");
                     first = false;

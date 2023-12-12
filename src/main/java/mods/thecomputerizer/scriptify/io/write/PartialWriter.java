@@ -24,6 +24,11 @@ public class PartialWriter<E> extends FileWriter {
     }
 
     @Override
+    public Object getValue() {
+        return getElement();
+    }
+
+    @Override
     public String toString() {
         return Objects.nonNull(this.element) ? this.element.toString() : "null";
     }

@@ -1,6 +1,8 @@
 package mods.thecomputerizer.scriptify.io.data;
 
+import crafttweaker.api.item.IIngredient;
 import crafttweaker.api.item.IItemStack;
+import crafttweaker.api.item.IngredientUnknown;
 import crafttweaker.api.liquid.ILiquidStack;
 import crafttweaker.api.minecraft.CraftTweakerMC;
 import crafttweaker.api.oredict.IOreDictEntry;
@@ -53,6 +55,8 @@ public class BEP {
 
     public static BEP of(String str) {
         Matcher amount = Patterns.AMOUNT.matcher(str);
+        if(str.startsWith("<")) str = str.substring(1);
+        if(str.contains(">")) str = str.substring(0,str.lastIndexOf(">"));
         String[] split = str.split(":");
         if(split.length>0 && split.length<4) {
             if(split.length==3 && split[2].matches("0")) split = Arrays.copyOfRange(split,0,2);
@@ -87,6 +91,14 @@ public class BEP {
     public FluidStack asFluidStack() {
         if(this.amount==0 || Objects.isNull(this.elements) || this.elements.length<2) return null;
         return FluidRegistry.getFluidStack(this.elements[1],this.amount);
+    }
+    public IIngredient asIIngredient() {
+        if(this.elements.length>0) {
+            String type = this.elements[0];
+            return type.matches("liquid") ? asILiquidStack() :
+                    (type.matches("ore") ? asIOreDictEntry() : asIItemStack());
+        }
+        return IngredientUnknown.INSTANCE;
     }
 
     public IItemStack asIItemStack() {

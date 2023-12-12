@@ -1,20 +1,29 @@
 package mods.thecomputerizer.scriptify.io.write;
 
+import crafttweaker.api.data.IData;
+import crafttweaker.api.item.IIngredient;
+import crafttweaker.api.minecraft.CraftTweakerMC;
 import lombok.Getter;
 import lombok.Setter;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
+import mods.thecomputerizer.scriptify.io.IOUtils;
+import mods.thecomputerizer.scriptify.io.data.BEP;
 import mods.thecomputerizer.scriptify.io.data.ExpressionCallHolder;
 import mods.thecomputerizer.scriptify.io.data.ExpressionCastHolder;
 import mods.thecomputerizer.scriptify.mixin.access.*;
+import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.util.GenericUtils;
+import net.minecraft.nbt.*;
+import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.expression.*;
+import stanhebben.zenscript.type.ZenType;
 
 import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.lang.reflect.Method;
+import java.util.*;
 
+@SuppressWarnings("unchecked")
 @Setter @Getter
 public class ExpressionWriter extends FileWriter {
 
@@ -31,6 +40,59 @@ public class ExpressionWriter extends FileWriter {
         super(tabLevel);
     }
 
+    public void cache() {
+        FileWriter writer;
+        if(this.expression instanceof ExpressionCastHolder) writer = getCastWriter((ExpressionCastHolder)this.expression);
+        else if(GenericUtils.isAnyType(this.expression,ExpressionBool.class,ExpressionFloat.class,ExpressionInt.class,
+                ExpressionString.class)) writer = getPrimitiveWriter();
+        else writer = getClampedWriter();
+        this.cachedSubWriter = writer;
+    }
+
+    private IData castMapToIData(Object value) {
+        return CraftTweakerMC.getIData(writeMapTag((Map<?,?>)value));
+    }
+
+    private NBTBase writeGenericTag(Object value) {
+        if(ClassUtils.isPrimitiveOrWrapper(value.getClass()) || value instanceof String) return writePrimitveTag(value);
+        if(value instanceof Iterable<?>) return writeItrTag((Iterable<?>)value);
+        if(value instanceof Map<?,?>) return writeMapTag((Map<?,?>)value);
+        if(value instanceof byte[]) return new NBTTagByteArray((byte[])value);
+        if(value instanceof int[]) return new NBTTagIntArray((int[])value);
+        if(value instanceof long[]) return new NBTTagLongArray((long[])value);
+        if(value instanceof Object[]) return writeArrayTag((Object[])value);
+        return new NBTTagString(value.toString());
+    }
+
+    private NBTTagCompound writeMapTag(Map<?,?> map) {
+        NBTTagCompound tag = new NBTTagCompound();
+        for(Map.Entry<?,?> entry : map.entrySet())
+            tag.setTag(entry.getKey().toString(),writeGenericTag(entry.getValue()));
+        return tag;
+    }
+
+    private NBTTagList writeArrayTag(Object[] array) {
+        NBTTagList tag = new NBTTagList();
+        for(Object element : array) tag.appendTag(writeGenericTag(element));
+        return tag;
+    }
+
+    private NBTTagList writeItrTag(Iterable<?> itr) {
+        NBTTagList tag = new NBTTagList();
+        for(Object element : itr) tag.appendTag(writeGenericTag(element));
+        return tag;
+    }
+
+    private NBTBase writePrimitveTag(Object primitive) {
+        if(primitive instanceof Byte) return new NBTTagByte((byte)primitive);
+        if(primitive instanceof Boolean) return new NBTTagByte((byte)(((boolean)primitive) ? 1 : 0));
+        if(primitive instanceof Double) return new NBTTagDouble((double)primitive);
+        if(primitive instanceof Float) return new NBTTagFloat((float)primitive);
+        if(primitive instanceof Integer) return new NBTTagInt((int)primitive);
+        if(primitive instanceof Short) return new NBTTagShort((short)primitive);
+        return new NBTTagString(primitive.toString());
+    }
+
     @Override
     public void collectImports(Set<String> imports) {
         if(this.expression instanceof ExpressionCastHolder) {
@@ -43,6 +105,26 @@ public class ExpressionWriter extends FileWriter {
     @Override
     public void collectPreprocessors(Set<String> preprocessors) {
         if(Objects.nonNull(this.cachedSubWriter)) this.cachedSubWriter.collectPreprocessors(preprocessors);
+    }
+
+    private Object evaluate(Object invoker, ZenType type, String methodName, List<FileWriter> writers) {
+        Class<?>[] argClasses = new Class<?>[writers.size()];
+        Misc.supplyArray(argClasses,i -> {
+            FileWriter writer = writers.get(i);
+            ScriptifyRef.LOGGER.error("WRITER EVALUATES TO {}", writer);
+            if(Objects.isNull(writer)) return IOUtils.getClassFromAlias("null");
+            String argType = writer instanceof ExpressionWriter ?
+                    IOUtils.getBaseTypeName(((ExpressionWriter)writer).expression.getType()) :
+                    Objects.nonNull(writer.getValue()) ? writer.getValue().getClass().getName() : "null";
+            return IOUtils.getClassFromAlias(argType);
+        });
+        Method method = Misc.getMethod(IOUtils.getClassFromAlias(IOUtils.getBaseTypeName(type)),methodName,argClasses);
+        if(Objects.nonNull(method)) {
+            Object[] argValues = new Object[writers.size()];
+            Misc.supplyArray(argValues,i -> writers.get(i).getValue());
+            return Misc.invokeMethod(method,invoker,argValues);
+        }
+        return null;
     }
 
     private ClampedWriter getArrayWriter(Expression[] expressions, boolean ignoreNewLine) {
@@ -183,6 +265,57 @@ public class ExpressionWriter extends FileWriter {
         return writer;
     }
 
+    private Object getClampedValue(ClampedWriter writer) {
+        if(this.expression instanceof ExpressionCallStatic) return BEP.of(writer.toString());
+        if(this.expression instanceof ExpressionCallVirtual) {
+            if(writer.getPrefix().endsWith("*")) return BEP.of(writer.toString());
+            ExpressionCallVirtualAccessor access = (ExpressionCallVirtualAccessor)this.expression;
+            IIngredient ingredient = BEP.of(writer.getPrefix().substring(0,writer.getPrefix().length()-1)).asIIngredient();
+            ZenType type = access.getMethod().getReturnType();
+            return "null";
+        }
+        if(this.expression instanceof ExpressionCallHolder) {
+            ExpressionCallHolder holder = (ExpressionCallHolder)this.expression;
+            ExpressionWriter invoker = new ExpressionWriter(holder.getReceiver());
+            invoker.setDisableStringQuotes(true);
+            return evaluate(invoker.getValue(),holder.getType(),holder.getMethodName(),writer.writers.getAsList());
+        }
+        if(this.expression instanceof ExpressionArray)
+            return ((List<Object>)writer.getValue()).toArray(new Object[0]);
+        if(this.expression instanceof ExpressionMap) {
+            Map<Object,Object> map = new HashMap<>();
+            for(FileWriter entryWriter : writer.getWriters()) {
+                List<Object> entryPair = (List<Object>)entryWriter.getValue();
+                map.putIfAbsent(entryPair.get(0),entryPair.get(1));
+            }
+            return map;
+        }
+        if(this.expression instanceof ExpressionCastHolder) {
+            ExpressionCastHolder holder = (ExpressionCastHolder)this.expression;
+            Class<?> castTo = IOUtils.getClassFromAlias(IOUtils.getBaseTypeName(holder.getType()));
+            Object value = new ExpressionWriter(holder.getExpression()).getValue();
+            return IData.class.isAssignableFrom(castTo) && value instanceof Map<?,?> ?
+                    castMapToIData(value) : castTo.cast(value);
+        }
+        return writer.getValue();
+    }
+
+    private Object getExpressionValue(ExpressionWriter writer) {
+        if(writer.getExpression() instanceof ExpressionArray) {
+
+        }
+        return null;
+    }
+
+    public Object getValue() {
+        if(Objects.isNull(this.cachedSubWriter)) cache();
+        if(this.cachedSubWriter instanceof ClampedWriter)
+            return getClampedValue((ClampedWriter)this.cachedSubWriter);
+        //if(this.cachedSubWriter instanceof ExpressionWriter)
+            //return getExpressionValue((ExpressionWriter)this.cachedSubWriter);
+        return this.cachedSubWriter.getValue();
+    }
+
     private ClampedWriter getVirtualWriter(ExpressionCallVirtual virtual) {
         ExpressionCallVirtualAccessor access = (ExpressionCallVirtualAccessor)virtual;
         Expression receiver = access.getReceiver();
@@ -203,16 +336,11 @@ public class ExpressionWriter extends FileWriter {
 
     @Override
     public void writeLines(List<String> lines) {
-        FileWriter writer;
-        if(this.expression instanceof ExpressionCastHolder) writer = getCastWriter((ExpressionCastHolder)this.expression);
-        else if(GenericUtils.isAnyType(this.expression,ExpressionBool.class,ExpressionFloat.class,ExpressionInt.class,
-                ExpressionString.class)) writer = getPrimitiveWriter();
-        else writer = getClampedWriter();
-        this.cachedSubWriter = writer;
-        if(Objects.nonNull(writer)) {
-            writer.setNewLine(isNewLine());
-            writer.setTabLevel(getTabLevel());
-            writer.writeLines(lines);
+        if(Objects.isNull(this.cachedSubWriter)) cache();
+        if(Objects.nonNull(this.cachedSubWriter)) {
+            this.cachedSubWriter.setNewLine(isNewLine());
+            this.cachedSubWriter.setTabLevel(getTabLevel());
+            this.cachedSubWriter.writeLines(lines);
         }
     }
 }

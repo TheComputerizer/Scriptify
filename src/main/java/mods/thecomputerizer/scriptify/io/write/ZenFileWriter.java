@@ -5,6 +5,7 @@ import lombok.Setter;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ZenFileWriter extends FileWriter {
 
@@ -34,6 +35,11 @@ public class ZenFileWriter extends FileWriter {
 
     public void addPreProcessor(String processor) {
         this.preProcessors.add(processor);
+    }
+
+    @Override
+    public Object getValue() {
+        return this.writers.stream().map(FileWriter::getValue).collect(Collectors.toSet());
     }
 
     public void setImports(String ... classNames)  {

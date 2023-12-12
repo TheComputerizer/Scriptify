@@ -37,6 +37,8 @@ public abstract class FileWriter {
 
     public void collectPreprocessors(Set<String> preprocessors) {}
 
+    public abstract Object getValue();
+
     @Override
     public String toString() {
         List<String> lines = new ArrayList<>();

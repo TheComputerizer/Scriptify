@@ -1,6 +1,7 @@
 package mods.thecomputerizer.scriptify.io.write;
 
 import lombok.Getter;
+import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.data.ExpressionData;
 import mods.thecomputerizer.theimpossiblelibrary.util.object.ItemUtil;
 import net.minecraft.init.Items;
@@ -46,6 +47,10 @@ public class WorldWriter {
     }
 
     public void writeToInventory() {
-
+        int slot = 0;
+        for(FileWriter writer : this.dataInput.getWriters()) {
+            Object value = writer.getValue();
+            ScriptifyRef.LOGGER.error("VALUE CLASS IS {} AND TOSTRING IS {}",value.getClass().getName(),value);
+        }
     }
 }

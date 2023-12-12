@@ -1,9 +1,11 @@
 package mods.thecomputerizer.scriptify.util;
 
+import crafttweaker.api.item.IIngredient;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.scriptify.io.IOUtils;
+import mods.thecomputerizer.scriptify.io.data.BEP;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.annotations.Optional;
@@ -11,9 +13,7 @@ import stanhebben.zenscript.annotations.Optional;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Array;
-import java.lang.reflect.Field;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -234,6 +234,31 @@ public class Misc {
 
     public static String getLastSplit(String str, String splitBy) {
         return str.substring(str.lastIndexOf(splitBy)+1);
+    }
+
+    public static @Nullable Method getMethod(@Nullable Class<?> clazz, String name, Class<?> ... argsClasses) {
+        return Misc.applyNullable(clazz,c -> {
+            try {
+                return c.getMethod(name, argsClasses);
+            } catch(NoSuchMethodException ex) {
+                Scriptify.logError(Misc.class,"method",ex,clazz,name);
+                return null;
+            }
+        });
+    }
+
+    public static @Nullable Object invokeMethod(@Nullable Method method, Object invoker, Object ... args) {
+        return Misc.applyNullable(method,m -> {
+            try {
+                if(IIngredient.class.isAssignableFrom(m.getReturnType()) && invoker instanceof BEP)
+                    return m.invoke(((BEP)invoker).asIIngredient(),args);
+                return m.invoke(invoker,args);
+            } catch(InvocationTargetException | IllegalAccessException | IllegalArgumentException ex) {
+                ScriptifyRef.LOGGER.error("Failed to invoke method {} with invoker {} and args {}",m,invoker,args);
+                //Scriptify.logError(Misc.class,"method",ex,m.getName(),m.getDeclaringClass().getName());
+                return null;
+            }
+        });
     }
 
     public static <N,V> V getNullable(@Nullable N nullable, V notNull, V isNull) {

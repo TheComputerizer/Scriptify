@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Writer wrapper for delegating primitive and nonenclosing types to sub writers.
@@ -17,7 +18,7 @@ import java.util.function.Function;
 public class ClampedWriter extends FileWriter {
 
     @Getter protected final CollectionBundle<FileWriter> writers;
-    @Setter private String prefix;
+    @Setter @Getter private String prefix;
     @Setter private String strClose;
     @Setter private String strOpen;
     @Setter private String strSeparator;
@@ -68,6 +69,11 @@ public class ClampedWriter extends FileWriter {
         String end = this.strClose +(this.needsSemicolon ? ";" : "");
         if(removeSpaces) end = end.replaceFirst(" ","");
         return end;
+    }
+
+    @Override
+    public Object getValue() {
+        return this.writers.getAsList().stream().map(FileWriter::getValue).collect(Collectors.toList());
     }
 
     @Override
