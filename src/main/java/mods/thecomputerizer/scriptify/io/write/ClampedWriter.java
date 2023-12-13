@@ -2,12 +2,11 @@ package mods.thecomputerizer.scriptify.io.write;
 
 import lombok.Getter;
 import lombok.Setter;
-import mods.thecomputerizer.scriptify.util.CollectionBundle;
+import mods.thecomputerizer.scriptify.util.Wrapperable;
 import mods.thecomputerizer.scriptify.util.Misc;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -17,7 +16,7 @@ import java.util.stream.Collectors;
  */
 public class ClampedWriter extends FileWriter {
 
-    @Getter protected final CollectionBundle<FileWriter> writers;
+    @Getter protected final Wrapperable<FileWriter> writers;
     @Setter @Getter private String prefix;
     @Setter private String strClose;
     @Setter private String strOpen;
@@ -27,7 +26,7 @@ public class ClampedWriter extends FileWriter {
 
     public ClampedWriter(int tabLevel) {
         super(tabLevel);
-        this.writers = CollectionBundle.make(ArrayList::new);
+        this.writers = Wrapperable.make(ArrayList::new);
         this.needsSemicolon = true;
         this.strClose = ")";
         this.strOpen = "(";
@@ -47,12 +46,12 @@ public class ClampedWriter extends FileWriter {
     }
 
     @Override
-    public void collectImports(Set<String> imports) {
+    public void collectImports(Wrapperable<String> imports) {
         for(FileWriter writer : this.writers) writer.collectImports(imports);
     }
 
     @Override
-    public void collectPreprocessors(Set<String> preprocessors) {
+    public void collectPreprocessors(Wrapperable<String> preprocessors) {
         for(FileWriter writer : this.writers) writer.collectPreprocessors(preprocessors);
     }
 

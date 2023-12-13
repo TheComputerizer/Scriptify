@@ -6,13 +6,13 @@ import crafttweaker.api.liquid.ILiquidStack;
 import crafttweaker.api.oredict.IOreDictEntry;
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
 import mods.thecomputerizer.scriptify.io.write.ClampedWriter;
 import mods.thecomputerizer.scriptify.io.write.ExpressionWriter;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
+import net.minecraftforge.fml.common.Loader;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.type.ZenType;
 
@@ -47,13 +47,16 @@ public class Blueprint {
         return false;
     }
 
+    private final boolean global;
     private final String className;
     private final String methodName;
     private final DynamicArray returnType;
     private final DynamicArray[] parameterTypes;
     private final int firstOptionalIndex;
 
-    public Blueprint(String className, String methodName, String returnType, String ... parameterTypeAliases) {
+    public Blueprint(boolean global, String className, String methodName, String returnType,
+                     String ... parameterTypeAliases) {
+        this.global = global;
         this.className = className;
         this.methodName = methodName;
         this.returnType = new DynamicArray(returnType);
@@ -90,7 +93,10 @@ public class Blueprint {
     }
 
     public boolean isReloadable() {
-        return RELOADABLE_MODS.contains(getMod());
+        if(Loader.isModLoaded("zenrecipereloading")) {
+            return RELOADABLE_MODS.contains(getMod());
+        }
+        return false;
     }
 
     @Override

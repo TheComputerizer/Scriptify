@@ -8,12 +8,13 @@ import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.io.data.BEP;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
-import stanhebben.zenscript.annotations.Optional;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -22,6 +23,7 @@ import java.util.function.Function;
 /**
  * Uncategorized util methods
  */
+@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class Misc {
 
     /**
@@ -30,6 +32,8 @@ public class Misc {
      * I guess this is going to be a thing now.
      */
     private static final Map<String,Map<String,String>> LOG_LANG_CACHE = initLogLang();
+
+    private static final Map<Class<?>,Wrapperable<Class<?>>> CACHED_SUPERCLASSES = Mapperable.makeSynchronizedValue(HashMap::new);
 
     private static void addLogKey(Map<String,String> map, String unparsed) {
         String[] split = unparsed.split("=",2);
@@ -83,6 +87,21 @@ public class Misc {
             LOG_LANG_CACHE.put(entry.getKey(),Collections.unmodifiableMap(localeMap));
         }
         LOG_LANG_CACHE.putIfAbsent("en_us",createDefualtLogLang());
+    }
+
+    private static Wrapperable<Class<?>> cacheSuperClasses(@Nullable Class<?> clazz) {
+        return Wrapperable.make(() -> {
+            Set<Class<?>> superClasses = new LinkedHashSet<>();
+            if (Objects.nonNull(clazz)) {
+                superClasses.add(clazz);
+                Class<?> superClass = clazz.getSuperclass();
+                while (Objects.nonNull(superClass)) {
+                    superClasses.add(superClass);
+                    superClass = superClass.getSuperclass();
+                }
+            }
+            return superClasses;
+        });
     }
 
     /**
@@ -171,6 +190,44 @@ public class Misc {
         int[] primitive = new int[boxed.length];
         for(int i=0; i<boxed.length; i++) primitive[i] = boxed[i];
         return primitive;
+    }
+
+    public static <E> E[] fixObjParsedArray(Object[] array) {
+        for(int i=0; i<array.length; i++) array[i] = getFixedObject(array[i]); //Handle nested arrays
+        Class<?> commonSuperClass = Object.class;
+        if(array.length>0) {
+            commonSuperClass = array[0].getClass();
+            for(int i=1; i<array.length; i++) {
+                commonSuperClass = getCommonSuperClass(commonSuperClass,array[i].getClass());
+                if(commonSuperClass==Object.class) break;
+            }
+        }
+        return (E[])Array.newInstance(commonSuperClass,array.length);
+    }
+
+    /**
+     * Fixes instances of Object[] that come from generic parsing.
+     * TODO See if collections and maps need fixing as well.
+     */
+    public static Object getFixedObject(Object obj) {
+        return obj instanceof Object[] ? fixObjParsedArray((Object[])obj) : obj;
+    }
+
+    private static Class<?> getCommonSuperClass(Class<?> class1, Class<?> class2) {
+        if(class1==class2) return class1;
+        Wrapperable<Class<?>> superClasses1 = getSuperClasses(class1);
+        Class<?> clazz = Object.class;
+        if(Objects.nonNull(superClasses1))
+            clazz = superClasses1.getFirstEquals(getSuperClasses(class2));
+        return Objects.nonNull(clazz) ? clazz : Object.class;
+    }
+
+    /**
+     * Returns an ordered set of super classes of the input class where the first class is the input class and
+     * the last class is always the Object class The returned set will always be a LinkedHashSet instance
+     */
+    public static @Nullable Wrapperable<Class<?>> getSuperClasses(@Nullable Class<?> clazz) {
+        return CACHED_SUPERCLASSES.computeIfAbsent(clazz,Misc::cacheSuperClasses);
     }
 
     public static <V> V getEither(boolean choice, V ifChoice, V notChoice) {

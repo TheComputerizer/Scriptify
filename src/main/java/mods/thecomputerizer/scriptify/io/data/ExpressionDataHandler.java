@@ -1,5 +1,6 @@
 package mods.thecomputerizer.scriptify.io.data;
 
+import crafttweaker.mc1120.CraftTweaker;
 import crafttweaker.zenscript.GlobalRegistry;
 import mods.thecomputerizer.scriptify.Scriptify;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
@@ -30,36 +31,34 @@ import java.util.*;
 @SuppressWarnings("SpellCheckingInspection")
 public class ExpressionDataHandler {
 
-    private static final List<Blueprint> BLUEPRINT_LIST = new ArrayList<>();
+    private static final Map<String,Set<Blueprint>> BLUEPRINTS_BY_MOD = new HashMap<>();
 
-    public static void addBluePrint(Blueprint blueprint) {
+    public static void addBluePrint(String modid, Blueprint blueprint) {
         if(!matchesExisting(blueprint)) {
-            BLUEPRINT_LIST.add(blueprint);
-            ScriptifyRef.LOGGER.info("Successfully added expression blueprint {}",blueprint);
+            BLUEPRINTS_BY_MOD.putIfAbsent(modid,new HashSet<>());
+            BLUEPRINTS_BY_MOD.get(modid).add(blueprint);
+            ScriptifyRef.LOGGER.info("Successfully added expression blueprint {} for mod {}",blueprint,modid);
         }
     }
 
-    public static Set<Blueprint> getPotentialBlueprints(String className, String methodName, boolean allowUnknownBlueprint) {
+    public static Set<Blueprint> getPotentialBlueprints(String className, String methodName) {
         Set<Blueprint> matches = new HashSet<>();
-        for(Blueprint blueprint : BLUEPRINT_LIST)
-            if(blueprint.matches(className,methodName))
-                matches.add(blueprint);
+        for(Set<Blueprint> blueprints : BLUEPRINTS_BY_MOD.values())
+            for(Blueprint blueprint : blueprints)
+                if(blueprint.matches(className,methodName))
+                    matches.add(blueprint);
         if(matches.isEmpty())
             Scriptify.logError(ExpressionDataHandler.class, "get", null, className, methodName);
         return matches;
     }
 
-    public static boolean isGlobalClass(String className) {
-        return className.matches("recipes") || className.matches("furnace");
-    }
-
     public static @Nullable ExpressionData matchFilteredExpression(
             ZenFileReader reader, StatementExpression statement, Collection<String> classMatches,
-            Collection<String> methodMatches, boolean allowUnknownBlueprint) throws IllegalArgumentException {
+            Collection<String> methodMatches) throws IllegalArgumentException {
         ParsedExpression expression = ((StatementExpressionAccessor)statement).getExpression();
         if(expression instanceof ParsedExpressionCall) {
             ParsedExpressionCallAccessor access = (ParsedExpressionCallAccessor)expression;
-            Set<Blueprint> matches = matchMember((ParsedExpressionMember)access.getReceiver(),classMatches,methodMatches,allowUnknownBlueprint);
+            Set<Blueprint> matches = matchMember((ParsedExpressionMember)access.getReceiver(),classMatches,methodMatches);
             if(!matches.isEmpty()) {
                 Scriptify.logInfo(ExpressionDataHandler.class,"match",matches.size());
                 return new ExpressionData(matches,reader.getEnvironment(),access.getArguments());
@@ -73,18 +72,19 @@ public class ExpressionDataHandler {
     }
 
     public static Set<Blueprint> matchMember(ParsedExpressionMember member, Collection<String> classMatches,
-                                             Collection<String> methodMatches, boolean allowUnknownBlueprint) {
+                                             Collection<String> methodMatches) {
         ParsedExpressionMemberAccessor access = (ParsedExpressionMemberAccessor)member;
         String methodName = access.getMember();
         if(!methodMatches.isEmpty() && !methodMatches.contains(methodName)) return new HashSet<>();
         String className = ((ParsedExpressionVariableAccessor)access.getValue()).getName();
         if(!classMatches.isEmpty() && !classMatches.contains(className)) return new HashSet<>();
-        return getPotentialBlueprints(className,methodName,allowUnknownBlueprint);
+        return getPotentialBlueprints(className,methodName);
     }
 
     public static boolean matchesExisting(Blueprint newBlueprint) {
-        for(Blueprint blueprint : BLUEPRINT_LIST)
-            if(blueprint==newBlueprint) return true;
+        for(Set<Blueprint> blueprints : BLUEPRINTS_BY_MOD.values())
+            for(Blueprint blueprint : blueprints)
+                if(blueprint==newBlueprint) return true;
         return false;
     }
 
@@ -92,7 +92,7 @@ public class ExpressionDataHandler {
      * Goes through the CT registry and catalogues all the static methods the classes
      */
     public static void registerBlueprints() {
-        BLUEPRINT_LIST.clear();
+        BLUEPRINTS_BY_MOD.clear();
         registerZenClassAliases("",GlobalRegistry.getRoot().getPackages());
         registerBlueprints("",GlobalRegistry.getGlobals());
         registerBlueprints("",GlobalRegistry.getRoot().getPackages());
@@ -119,9 +119,11 @@ public class ExpressionDataHandler {
             String className = IOUtils.getBaseTypeName(type);
             String methodName = staticEntry.getKey();
             for(IJavaMethod method : staticEntry.getValue().getMethods()) {
+                String returnName = method.getReturnType().getName();
                 String[] parameterTypes = new String[method.getParameterTypes().length];
                 Misc.supplyArray(parameterTypes,i -> IOUtils.getBaseTypeName(method.getParameterTypes()[i]));
-                addBluePrint(new Blueprint(className,methodName,method.getReturnType().getName(),parameterTypes));
+                Blueprint blueprint = new Blueprint(false,className,methodName,returnName,parameterTypes);
+                addBluePrint(blueprint.getMod(),blueprint);
             }
         }
     }
@@ -134,9 +136,10 @@ public class ExpressionDataHandler {
                 String[] parameterTypes = new String[method.getParameters().length];
                 Misc.supplyArray(parameterTypes,i -> {
                     Parameter parameter = method.getParameters()[i];
-                    return (Objects.nonNull(parameter.getAnnotation(Optional.class)) ? "@" : "")+parameter.getType().getSimpleName();
+                    String name = parameter.getType().getSimpleName();
+                    return (Objects.nonNull(parameter.getAnnotation(Optional.class)) ? "@" : "")+name;
                 });
-                addBluePrint(new Blueprint(className,method.getName(),returnType,parameterTypes));
+                addBluePrint(CraftTweaker.MODID,new Blueprint(true,className,method.getName(),returnType,parameterTypes));
             }
         }
     }

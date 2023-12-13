@@ -4,7 +4,9 @@ import lombok.Getter;
 import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.data.ExpressionData;
 import mods.thecomputerizer.theimpossiblelibrary.util.object.ItemUtil;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
@@ -46,7 +48,8 @@ public class WorldWriter {
         return "toString";
     }
 
-    public void writeToInventory() {
+    public void writeToInventory(IInventory inventory) {
+        EntityPlayerMP player;
         int slot = 0;
         for(FileWriter writer : this.dataInput.getWriters()) {
             Object value = writer.getValue();

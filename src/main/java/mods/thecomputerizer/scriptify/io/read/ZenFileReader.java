@@ -127,7 +127,7 @@ public class ZenFileReader extends FileReader {
                 ExpressionData data = null;
                 try {
                     data = ExpressionDataHandler.matchFilteredExpression(this,(StatementExpression)statement,
-                            classMatches,methodMatches,this.debug);
+                            classMatches,methodMatches);
                 } catch (IllegalArgumentException ex) {
                     Scriptify.logError(getClass(),"parse",ex);
                 }

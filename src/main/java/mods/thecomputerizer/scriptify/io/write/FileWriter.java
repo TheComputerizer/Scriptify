@@ -2,14 +2,13 @@ package mods.thecomputerizer.scriptify.io.write;
 
 import lombok.Getter;
 import lombok.Setter;
-import mods.thecomputerizer.scriptify.util.CollectionBundle;
+import mods.thecomputerizer.scriptify.util.Wrapperable;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Writes lines to a file based a list of strings that gets passed through.
@@ -18,13 +17,13 @@ import java.util.Set;
 @Getter
 public abstract class FileWriter {
 
-    protected final CollectionBundle<String> comments;
+    protected final Wrapperable<String> comments;
     @Setter private int characterLimit;
     @Setter private boolean newLine;
     @Setter protected int tabLevel; //Number of tabs if this writer need to write a new line
 
     protected FileWriter(int tabLevel) {
-        this.comments = CollectionBundle.make(ArrayList::new);
+        this.comments = Wrapperable.make(ArrayList::new);
         this.characterLimit = 100;
         this.tabLevel = tabLevel;
     }
@@ -33,9 +32,9 @@ public abstract class FileWriter {
         lines.add("");
     }
 
-    public void collectImports(Set<String> imports) {}
+    public void collectImports(Wrapperable<String> imports) {}
 
-    public void collectPreprocessors(Set<String> preprocessors) {}
+    public void collectPreprocessors(Wrapperable<String> preprocessors) {}
 
     public abstract Object getValue();
 

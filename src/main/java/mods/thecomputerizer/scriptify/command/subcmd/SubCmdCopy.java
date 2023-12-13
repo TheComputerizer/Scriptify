@@ -108,7 +108,7 @@ public class SubCmdCopy extends SubCmd {
             ScriptifyRef.LOGGER.error("TESTING EVALUATIONS FOR {}",sortedEntry.getKey());
             for(ExpressionData data : sortedEntry.getValue()) {
                 ScriptifyRef.LOGGER.error("TESTING DATA WITH BLUEPRINT {}",data.getBlueprint());
-                new WorldWriter(data).writeToInventory();
+                new WorldWriter(data).writeToInventory(null);
             }
         }
         //if(output.endsWith(".zs")) writeFile(sortedDataMap,output);
@@ -122,7 +122,7 @@ public class SubCmdCopy extends SubCmd {
             writer.getComments().set("Automagically Generated",String.format("Sort Element `$1%s`",sortKey));
             for(ExpressionData data : sortedEntry.getValue()) {
                 writer.getWriters().add(data.makeFileWriter());
-                data.finalizeWriter(writer);
+                writer.finalizeData(data);
             }
             writer.addPreProcessor("reloadable");
             writer.writeToFile(new File(dirPath,Misc.getLastSplit(sortedEntry.getKey(),".") +".zs").getPath(),true);
@@ -141,7 +141,7 @@ public class SubCmdCopy extends SubCmd {
                     first = false;
                 }
                 zenWriter.getWriters().add(writer);
-                data.finalizeWriter(zenWriter);
+                zenWriter.finalizeData(data);
             }
         }
         zenWriter.addPreProcessor("reloadable");

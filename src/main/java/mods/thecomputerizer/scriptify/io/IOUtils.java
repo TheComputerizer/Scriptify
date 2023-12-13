@@ -9,7 +9,6 @@ import crafttweaker.api.oredict.IOreDict;
 import crafttweaker.api.oredict.IOreDictEntry;
 import crafttweaker.mc1120.oredict.MCOreDictEntry;
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.data.BEP;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.io.write.PartialWriter;
@@ -25,8 +24,6 @@ import net.minecraftforge.oredict.OreDictionary;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.annotations.OperatorType;
 import stanhebben.zenscript.type.ZenType;
-import stanhebben.zenscript.type.ZenTypeArray;
-import stanhebben.zenscript.type.ZenTypeAssociative;
 import stanhebben.zenscript.type.ZenTypeFunction;
 
 import java.lang.reflect.Array;

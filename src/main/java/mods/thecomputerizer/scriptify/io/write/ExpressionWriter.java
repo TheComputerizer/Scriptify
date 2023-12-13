@@ -10,7 +10,9 @@ import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.io.data.BEP;
 import mods.thecomputerizer.scriptify.io.data.ExpressionCallHolder;
 import mods.thecomputerizer.scriptify.io.data.ExpressionCastHolder;
+import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
 import mods.thecomputerizer.scriptify.mixin.access.*;
+import mods.thecomputerizer.scriptify.util.Wrapperable;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.util.GenericUtils;
 import net.minecraft.nbt.*;
@@ -22,10 +24,21 @@ import stanhebben.zenscript.type.ZenType;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Consumer;
 
 @SuppressWarnings("unchecked")
 @Setter @Getter
 public class ExpressionWriter extends FileWriter {
+
+    public static ExpressionWriter make(Expression expression, Consumer<ExpressionWriter> settings) {
+        ExpressionWriter writer = new ExpressionWriter(expression);
+        settings.accept(writer);
+        return writer;
+    }
+
+    public static ExpressionWriter makeAndCache(ExpressionReader reader) {
+        return make(reader.getExpression(),ExpressionWriter::cache);
+    }
 
     private Expression expression;
     private boolean disableStringQuotes;
@@ -49,8 +62,8 @@ public class ExpressionWriter extends FileWriter {
         this.cachedSubWriter = writer;
     }
 
-    private IData castMapToIData(Object value) {
-        return CraftTweakerMC.getIData(writeMapTag((Map<?,?>)value));
+    private IData castToIData(Object value) {
+        return CraftTweakerMC.getIData(writeGenericTag(value));
     }
 
     private NBTBase writeGenericTag(Object value) {
@@ -94,7 +107,7 @@ public class ExpressionWriter extends FileWriter {
     }
 
     @Override
-    public void collectImports(Set<String> imports) {
+    public void collectImports(Wrapperable<String> imports) {
         if(this.expression instanceof ExpressionCastHolder) {
             String importName = ((ExpressionCastHolder)this.expression).getImportName();
             if(StringUtils.isNotEmpty(importName)) imports.add(importName);
@@ -103,7 +116,7 @@ public class ExpressionWriter extends FileWriter {
     }
 
     @Override
-    public void collectPreprocessors(Set<String> preprocessors) {
+    public void collectPreprocessors(Wrapperable<String> preprocessors) {
         if(Objects.nonNull(this.cachedSubWriter)) this.cachedSubWriter.collectPreprocessors(preprocessors);
     }
 
@@ -281,7 +294,7 @@ public class ExpressionWriter extends FileWriter {
             return evaluate(invoker.getValue(),holder.getType(),holder.getMethodName(),writer.writers.getAsList());
         }
         if(this.expression instanceof ExpressionArray)
-            return ((List<Object>)writer.getValue()).toArray(new Object[0]);
+            return Misc.getFixedObject(((List<Object>)writer.getValue()).toArray(new Object[0]));
         if(this.expression instanceof ExpressionMap) {
             Map<Object,Object> map = new HashMap<>();
             for(FileWriter entryWriter : writer.getWriters()) {
@@ -295,7 +308,7 @@ public class ExpressionWriter extends FileWriter {
             Class<?> castTo = IOUtils.getClassFromAlias(IOUtils.getBaseTypeName(holder.getType()));
             Object value = new ExpressionWriter(holder.getExpression()).getValue();
             return IData.class.isAssignableFrom(castTo) && value instanceof Map<?,?> ?
-                    castMapToIData(value) : castTo.cast(value);
+                    castToIData(value) : castTo.cast(value);
         }
         return writer.getValue();
     }
@@ -310,7 +323,7 @@ public class ExpressionWriter extends FileWriter {
     public Object getValue() {
         if(Objects.isNull(this.cachedSubWriter)) cache();
         if(this.cachedSubWriter instanceof ClampedWriter)
-            return getClampedValue((ClampedWriter)this.cachedSubWriter);
+            return Misc.getFixedObject(getClampedValue((ClampedWriter)this.cachedSubWriter));
         //if(this.cachedSubWriter instanceof ExpressionWriter)
             //return getExpressionValue((ExpressionWriter)this.cachedSubWriter);
         return this.cachedSubWriter.getValue();
