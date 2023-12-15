@@ -117,7 +117,6 @@ public class WorldWriter {
     }
 
     public void writeToInventory(IInventory inventory) {
-        EntityPlayerMP player;
         int slot = 0;
         Wrapperable<ExpressionWriter> writers = this.dataInput.getWriters();
         for(int i=0; i<writers.size(); i++) {

@@ -104,13 +104,15 @@ public class SubCmdCopy extends SubCmd {
     private void runOutput(Map<ZenFileReader,List<ExpressionData>> dataMap, String output) throws CommandException {
         if(StringUtils.isBlank(output)) throwGeneric(array("copy","output"));
         Map<String,List<ExpressionData>> sortedDataMap = applySort(dataMap,getParameterAsString("sortBy"));
-        for(Map.Entry<String,List<ExpressionData>> sortedEntry : sortedDataMap.entrySet()) {
-            ScriptifyRef.LOGGER.error("TESTING EVALUATIONS FOR {}",sortedEntry.getKey());
-            for(ExpressionData data : sortedEntry.getValue()) {
-                ScriptifyRef.LOGGER.error("TESTING DATA WITH BLUEPRINT {}",data.getBlueprint());
-                new WorldWriter(data).writeToInventory(this.sender.getEntityWorld(),this.sender.getPosition().down());
-            }
-        }
+        String type = getParameterAsString("type");
+        if(type.matches("inventory")) {
+            for (Map.Entry<String, List<ExpressionData>> sortedEntry : sortedDataMap.entrySet())
+                for (ExpressionData data : sortedEntry.getValue())
+                    new WorldWriter(data).writeToInventory(this.sender.getEntityWorld(), this.sender.getPosition().down());
+        } else if(type.matches("file")) {
+            if(output.endsWith(".zs")) writeFile(sortedDataMap,output);
+            else writeDirectory(sortedDataMap,output);
+        } else Scriptify.logError(getClass(),"type",null,type);
     }
 
     private void writeDirectory(Map<String,List<ExpressionData>> sortedDataMap, String dirPath) {
