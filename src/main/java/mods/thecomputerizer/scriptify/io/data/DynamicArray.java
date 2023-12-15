@@ -2,7 +2,6 @@ package mods.thecomputerizer.scriptify.io.data;
 
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.Scriptify;
-import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.scriptify.util.Patterns;
@@ -29,10 +28,37 @@ public class DynamicArray {
         this.bracketCount = bracketCount;
         this.isOptional = type.startsWith("@");
         if(this.isOptional) type = type.substring(1);
+        if(bracketCount>0 && type.startsWith("L")) {
+            type = type.substring(1);
+            if(type.endsWith(";")) type = type.substring(0,type.length()-1);
+        }
         this.className = IOUtils.getClassFromAlias(type).getName();
         this.typeClass = makeTypeClass();
     }
 
+    public DynamicArray(int bracketCount, Class<?> clazz) {
+        String name = clazz.getName();
+        this.bracketCount = bracketCount<0 ? StringUtils.countMatches(name,'[') : bracketCount;
+        name = name.replaceAll(Patterns.ARRAY_DEF.pattern(),"");
+        this.isOptional = false;
+        if(name.startsWith("L")) {
+            name = name.substring(1);
+            if(name.endsWith(";")) name = name.substring(0,name.length()-1);
+        }
+        this.className = name;
+        this.typeClass = makeTypeClass();
+    }
+
+    public Class<?> getBaseClass() {
+        Class<?> clazz;
+        try {
+            clazz = Class.forName(this.className);
+        } catch(ClassNotFoundException ex) {
+            Scriptify.logError(getClass(),null,ex);
+            clazz = Object.class;
+        }
+        return clazz;
+    }
 
     public boolean isValid(ZenType type) {
         if(Objects.isNull(type)) {
@@ -46,13 +72,7 @@ public class DynamicArray {
     }
 
     private Class<?> makeTypeClass() {
-        Class<?> clazz;
-        try {
-            clazz = Class.forName(this.className);
-        } catch(ClassNotFoundException ex) {
-            Scriptify.logError(getClass(),null,ex,this.typeClass.getName());
-            clazz = Object.class;
-        }
+        Class<?> clazz = getBaseClass();
         if(this.bracketCount==0) return clazz;
         int[] dimensions = new int[this.bracketCount];
         Arrays.fill(dimensions,1);
@@ -62,7 +82,11 @@ public class DynamicArray {
 
     @Override
     public boolean equals(Object o) {
-        return getClass()==o.getClass() && this.typeClass.getName().matches(((DynamicArray)o).typeClass.getName());
+        if(getClass()==o.getClass()) {
+            DynamicArray d = (DynamicArray)o;
+            return this.typeClass==d.typeClass && this.bracketCount==d.bracketCount;
+        }
+        return false;
     }
 
     @Override

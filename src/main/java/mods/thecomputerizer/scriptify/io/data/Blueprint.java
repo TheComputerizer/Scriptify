@@ -16,6 +16,7 @@ import net.minecraftforge.fml.common.Loader;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.type.ZenType;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 @Getter
@@ -77,6 +78,10 @@ public class Blueprint {
         return optional;
     }
 
+    public @Nullable DynamicArray getParameterAt(int index) {
+        return index<0 || index>=this.parameterTypes.length ? null : this.parameterTypes[index];
+    }
+
     public String getFirstTypeSimpleName() {
         if(this.parameterTypes.length==0) return "empty";
         DynamicArray type = this.parameterTypes[0];
@@ -90,6 +95,10 @@ public class Blueprint {
         if(count==1) return Misc.getLastSplit(this.className,".");
         String chopped = this.className.substring(this.className.indexOf('.')+1);
         return chopped.substring(0,chopped.indexOf('.')).trim().toLowerCase();
+    }
+
+    public String getTypeName() {
+        return this.className+"#"+this.methodName;
     }
 
     public boolean isReloadable() {

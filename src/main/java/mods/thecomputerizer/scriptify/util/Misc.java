@@ -6,6 +6,7 @@ import mods.thecomputerizer.scriptify.ScriptifyRef;
 import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.io.data.BEP;
+import mods.thecomputerizer.scriptify.io.data.DynamicArray;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 
@@ -23,7 +24,7 @@ import java.util.function.Function;
 /**
  * Uncategorized util methods
  */
-@SuppressWarnings({"unchecked", "DataFlowIssue"})
+@SuppressWarnings("unchecked")
 public class Misc {
 
     /**
@@ -32,8 +33,6 @@ public class Misc {
      * I guess this is going to be a thing now.
      */
     private static final Map<String,Map<String,String>> LOG_LANG_CACHE = initLogLang();
-
-    private static final Map<Class<?>,Wrapperable<Class<?>>> CACHED_SUPERCLASSES = Mapperable.makeSynchronizedValue(HashMap::new);
 
     private static void addLogKey(Map<String,String> map, String unparsed) {
         String[] split = unparsed.split("=",2);
@@ -62,20 +61,6 @@ public class Misc {
         return false;
     }
 
-    /**
-     * Exceptions need to be handled externally
-     */
-    public static <K,V> @Nullable V applyNullable(@Nullable K thing, Function<K,V> function) {
-        return Objects.isNull(thing) ? null : function.apply(thing);
-    }
-
-    /**
-     * Exceptions need to be handled externally
-     */
-    public static <K> void consumeNullable(@Nullable K thing, Consumer<K> conumer) {
-        if(Objects.nonNull(thing)) conumer.accept(thing);
-    }
-
     public static void applyCachedLangFiles(Map<String,String[]> map) {
         LOG_LANG_CACHE.clear();
         for(Map.Entry<String,String[]> entry : map.entrySet()) {
@@ -89,19 +74,18 @@ public class Misc {
         LOG_LANG_CACHE.putIfAbsent("en_us",createDefualtLogLang());
     }
 
-    private static Wrapperable<Class<?>> cacheSuperClasses(@Nullable Class<?> clazz) {
-        return Wrapperable.make(() -> {
-            Set<Class<?>> superClasses = new LinkedHashSet<>();
-            if (Objects.nonNull(clazz)) {
-                superClasses.add(clazz);
-                Class<?> superClass = clazz.getSuperclass();
-                while (Objects.nonNull(superClass)) {
-                    superClasses.add(superClass);
-                    superClass = superClass.getSuperclass();
-                }
-            }
-            return superClasses;
-        });
+    /**
+     * Exceptions need to be handled externally
+     */
+    public static <K,V> @Nullable V applyNullable(@Nullable K thing, Function<K,V> function) {
+        return Objects.isNull(thing) ? null : function.apply(thing);
+    }
+
+    /**
+     * Exceptions need to be handled externally
+     */
+    public static <K> void consumeNullable(@Nullable K thing, Consumer<K> conumer) {
+        if(Objects.nonNull(thing)) conumer.accept(thing);
     }
 
     /**
@@ -192,42 +176,25 @@ public class Misc {
         return primitive;
     }
 
-    public static <E> E[] fixObjParsedArray(Object[] array) {
-        for(int i=0; i<array.length; i++) array[i] = getFixedObject(array[i]); //Handle nested arrays
-        Class<?> commonSuperClass = Object.class;
-        if(array.length>0) {
-            commonSuperClass = array[0].getClass();
-            for(int i=1; i<array.length; i++) {
-                commonSuperClass = getCommonSuperClass(commonSuperClass,array[i].getClass());
-                if(commonSuperClass==Object.class) break;
-            }
-        }
-        return (E[])Array.newInstance(commonSuperClass,array.length);
+    public static <E> E[] fixObjParsedArray(Object[] array, Class<?> fixAs) {
+        DynamicArray base = new DynamicArray(-1,fixAs);
+        base = new DynamicArray(base.getBracketCount()-1,base.getBaseClass());
+        for(int i=0; i<array.length; i++) array[i] = getFixedObject(array[i],base.getTypeClass()); //Handle nested arrays
+        return (E[])supplyArrayCreation(base.getTypeClass(),array.length, i -> array[i]);
     }
 
     /**
      * Fixes instances of Object[] that come from generic parsing.
      * TODO See if collections and maps need fixing as well.
      */
-    public static Object getFixedObject(Object obj) {
-        return obj instanceof Object[] ? fixObjParsedArray((Object[])obj) : obj;
-    }
-
-    private static Class<?> getCommonSuperClass(Class<?> class1, Class<?> class2) {
-        if(class1==class2) return class1;
-        Wrapperable<Class<?>> superClasses1 = getSuperClasses(class1);
-        Class<?> clazz = Object.class;
-        if(Objects.nonNull(superClasses1))
-            clazz = superClasses1.getFirstEquals(getSuperClasses(class2));
-        return Objects.nonNull(clazz) ? clazz : Object.class;
-    }
-
-    /**
-     * Returns an ordered set of super classes of the input class where the first class is the input class and
-     * the last class is always the Object class The returned set will always be a LinkedHashSet instance
-     */
-    public static @Nullable Wrapperable<Class<?>> getSuperClasses(@Nullable Class<?> clazz) {
-        return CACHED_SUPERCLASSES.computeIfAbsent(clazz,Misc::cacheSuperClasses);
+    public static Object getFixedObject(Object obj, Class<?> fixAs) {
+        if(obj instanceof BEP) obj = ((BEP) obj).asIIngredient();
+        else if(obj instanceof Object[]) return fixObjParsedArray((Object[])obj,fixAs);
+        try {
+            return fixAs.cast(obj);
+        } catch(ClassCastException ex) {
+            return obj;
+        }
     }
 
     public static <V> V getEither(boolean choice, V ifChoice, V notChoice) {
@@ -385,6 +352,18 @@ public class Misc {
 
     public static <E,F> void supplyArray(E[] array, F thing, BiFunction<F,Integer,E> func) {
         for(int i=0; i<array.length; i++) array[i] = func.apply(thing,i);
+    }
+
+    public static <E> Object supplyArrayCreation(Class<E> clazz, int size, Function<Integer,?> func) {
+        E[] array = (E[])Array.newInstance(clazz,size);
+        for(int i=0; i<array.length; i++) array[i] = (E)func.apply(i);
+        return array;
+    }
+
+    public static <E,F> Object supplyArrayCreation(Class<E> clazz, int size, F thing, BiFunction<F,Integer,?> func) {
+        E[] array = (E[])Array.newInstance(clazz,size);
+        for(int i=0; i<array.length; i++) array[i] = (E)func.apply(thing,i);
+        return array;
     }
 
     /**

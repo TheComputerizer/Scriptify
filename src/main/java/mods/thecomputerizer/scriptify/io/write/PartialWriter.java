@@ -24,7 +24,7 @@ public class PartialWriter<E> extends FileWriter {
     }
 
     @Override
-    public Object getValue() {
+    protected Object getValueInner() {
         return getElement();
     }
 

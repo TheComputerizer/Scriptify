@@ -3,7 +3,7 @@ package mods.thecomputerizer.scriptify.io.write;
 import lombok.Getter;
 import mods.thecomputerizer.scriptify.io.data.Blueprint;
 import mods.thecomputerizer.scriptify.io.data.ExpressionData;
-import mods.thecomputerizer.scriptify.util.Wrapperable;
+import mods.thecomputerizer.scriptify.util.iterator.Wrapperable;
 import mods.thecomputerizer.theimpossiblelibrary.util.file.FileUtil;
 
 import java.util.ArrayList;
@@ -48,8 +48,8 @@ public class ZenFileWriter extends FileWriter {
     }
 
     @Override
-    public Object getValue() {
-        return this.writers.stream().map(FileWriter::getValue).collect(Collectors.toSet());
+    public Object getValueInner() {
+        return this.writers.stream().map(FileWriter::getValueInner).collect(Collectors.toSet());
     }
 
     @Override

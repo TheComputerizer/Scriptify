@@ -2,7 +2,7 @@ package mods.thecomputerizer.scriptify.command.parameters.types;
 
 import mods.thecomputerizer.scriptify.command.parameters.common.ParameterString;
 import mods.thecomputerizer.scriptify.command.subcmd.SubCmdHelp;
-import mods.thecomputerizer.scriptify.io.IOUtils;
+import mods.thecomputerizer.scriptify.io.data.ExpressionDataHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -19,7 +19,7 @@ public class ParameterType extends ParameterString {
         String arg = args[0];
         switch(this.runningType) {
             case COMMAND_HELP: return SubCmdHelp.getTypes(name,arg);
-            case COMMAND_RECIPE: return IOUtils.combineRecipeTypes(name,arg);
+            case COMMAND_RECIPE: return ExpressionDataHandler.getRecipeTypes(name,arg);
             default: return Collections.singletonList(name+"=");
         }
     }

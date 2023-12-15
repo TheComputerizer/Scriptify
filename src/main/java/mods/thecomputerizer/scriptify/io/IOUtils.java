@@ -14,6 +14,7 @@ import mods.thecomputerizer.scriptify.io.write.FileWriter;
 import mods.thecomputerizer.scriptify.io.write.PartialWriter;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.scriptify.util.Patterns;
+import mods.thecomputerizer.scriptify.util.iterator.WrapperableMappable;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -37,10 +38,9 @@ import java.util.regex.Matcher;
 @SuppressWarnings("unchecked")
 public class IOUtils {
 
-    private static final Map<Class<?>,Set<String>> CLASS_ALIASES = new HashMap<>(); //case-insensitive
+    private static final WrapperableMappable<Class<?>,String> CLASS_ALIASES = new WrapperableMappable<>(new HashMap<>(),false); //case-insensitive
     private static final Map<String,Function<String,Object>> READER_MAP = new HashMap<>();
     private static final Map<String,Function<Object,FileWriter>> WRITER_MAP = new HashMap<>();
-    private static final Map<String,Set<String>> RECIPE_TYPE_CACHE = new HashMap<>();
 
     public static void addBasicClassAliases(Class<?> ... classes) {
         for(Class<?> clazz : classes) addClassAliases(clazz);
@@ -62,21 +62,8 @@ public class IOUtils {
                     Misc.lowerCaseAddCollection(aliasSet,fixClassName(argArrElement));
             } else Misc.lowerCaseAddCollection(aliasSet,fixClassName(arg.toString()));
         }
-        CLASS_ALIASES.put(clazz,aliasSet);
+        CLASS_ALIASES.putFast(clazz,aliasSet);
         Scriptify.logDebug(IOUtils.class,null,clazz.getName(),TextUtil.compileCollection(aliasSet));
-    }
-
-    public static List<String> combineRecipeTypes(String prefix, String arg) {
-        List<String> combined = new ArrayList<>();
-        for(Map.Entry<String,Set<String>> classEntry : RECIPE_TYPE_CACHE.entrySet()) {
-            String className = classEntry.getKey();
-            for(String methodName : classEntry.getValue()) {
-                if(className.matches("recipes")) methodName = className+"."+methodName;
-                methodName = prefix+"="+methodName;
-                if(methodName.startsWith(arg)) combined.add(methodName);
-            }
-        }
-        return combined;
     }
 
     private static String fixClassName(String className) {
@@ -90,14 +77,7 @@ public class IOUtils {
     }
 
     public static Class<?> getClassFromAlias(String alias) {
-        Class<?> clazz = Object.class;
-        for(Map.Entry<Class<?>,Set<String>> aliasEntry : CLASS_ALIASES.entrySet()) {
-            if(Patterns.matchesAny(alias,aliasEntry.getValue())) {
-                clazz = aliasEntry.getKey();
-                break;
-            }
-        }
-        return clazz;
+        return CLASS_ALIASES.getKeyOrDefault(w -> Patterns.matchesAny(alias,w),Object.class);
     }
 
     private static Tuple<String,String> getClassNames(Class<?> clazz) {
@@ -171,7 +151,6 @@ public class IOUtils {
     public static void loadDefaults() {
         loadDefaultClassAliases();
         loadDefaultReaders();
-        loadDefaultRecipeTypes();
         loadDefaultWriters();
     }
 
@@ -189,13 +168,6 @@ public class IOUtils {
 
     private static void loadDefaultReaders() {
         READER_MAP.put("bep",BEP::of);
-    }
-
-    private static void loadDefaultRecipeTypes() {
-        RECIPE_TYPE_CACHE.put("recipes",new HashSet<>());
-        RECIPE_TYPE_CACHE.get("recipes").addAll(Arrays.asList("addShaped","addShapeless"));
-        RECIPE_TYPE_CACHE.put("TableCrafting",new HashSet<>());
-        RECIPE_TYPE_CACHE.get("TableCrafting").addAll(Arrays.asList("addShaped","addShapeless"));
     }
 
     private static void loadDefaultWriters() {

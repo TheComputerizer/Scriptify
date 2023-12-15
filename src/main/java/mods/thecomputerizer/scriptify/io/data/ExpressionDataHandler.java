@@ -8,6 +8,8 @@ import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.io.read.ZenFileReader;
 import mods.thecomputerizer.scriptify.mixin.access.*;
 import mods.thecomputerizer.scriptify.util.Misc;
+import mods.thecomputerizer.scriptify.util.iterator.Wrapperable;
+import mods.thecomputerizer.scriptify.util.iterator.WrapperableMappable;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 import stanhebben.zenscript.annotations.Optional;
@@ -31,25 +33,26 @@ import java.util.*;
 @SuppressWarnings("SpellCheckingInspection")
 public class ExpressionDataHandler {
 
-    private static final Map<String,Set<Blueprint>> BLUEPRINTS_BY_MOD = new HashMap<>();
+    private static final WrapperableMappable<String,Blueprint> BLUEPRINTS_BY_MOD = new WrapperableMappable<>(new HashMap<>(),false);
+    private static final Wrapperable<String> CACHED_BLUEPRINT_TYPES = Wrapperable.make(HashSet::new);
 
     public static void addBluePrint(String modid, Blueprint blueprint) {
-        if(!matchesExisting(blueprint)) {
-            BLUEPRINTS_BY_MOD.putIfAbsent(modid,new HashSet<>());
-            BLUEPRINTS_BY_MOD.get(modid).add(blueprint);
+        if(BLUEPRINTS_BY_MOD.addIfUnmatched(modid,Wrapperable.make(HashSet::new),blueprint))
             ScriptifyRef.LOGGER.info("Successfully added expression blueprint {} for mod {}",blueprint,modid);
-        }
     }
 
     public static Set<Blueprint> getPotentialBlueprints(String className, String methodName) {
-        Set<Blueprint> matches = new HashSet<>();
-        for(Set<Blueprint> blueprints : BLUEPRINTS_BY_MOD.values())
-            for(Blueprint blueprint : blueprints)
-                if(blueprint.matches(className,methodName))
-                    matches.add(blueprint);
+        Set<Blueprint> matches = BLUEPRINTS_BY_MOD.insertMatchingValues(HashSet::new,
+                blueprint -> blueprint.matches(className,methodName));
         if(matches.isEmpty())
             Scriptify.logError(ExpressionDataHandler.class, "get", null, className, methodName);
         return matches;
+    }
+
+    public static List<String> getRecipeTypes(String prefix, String arg) {
+        Set<String> combined = CACHED_BLUEPRINT_TYPES.mapTo(HashSet::new,
+                type -> type.startsWith(arg) ? prefix+"="+type : null,true);
+        return new ArrayList<>(combined);
     }
 
     public static @Nullable ExpressionData matchFilteredExpression(
@@ -81,21 +84,17 @@ public class ExpressionDataHandler {
         return getPotentialBlueprints(className,methodName);
     }
 
-    public static boolean matchesExisting(Blueprint newBlueprint) {
-        for(Set<Blueprint> blueprints : BLUEPRINTS_BY_MOD.values())
-            for(Blueprint blueprint : blueprints)
-                if(blueprint==newBlueprint) return true;
-        return false;
-    }
-
     /**
      * Goes through the CT registry and catalogues all the static methods the classes
      */
     public static void registerBlueprints() {
         BLUEPRINTS_BY_MOD.clear();
+        CACHED_BLUEPRINT_TYPES.clear();
         registerZenClassAliases("",GlobalRegistry.getRoot().getPackages());
         registerBlueprints("",GlobalRegistry.getGlobals());
         registerBlueprints("",GlobalRegistry.getRoot().getPackages());
+        BLUEPRINTS_BY_MOD.forEachValue(wrappable -> wrappable.mapTo(CACHED_BLUEPRINT_TYPES,
+                Blueprint::getTypeName, false,true));
     }
 
     private static void registerBlueprints(String previous, Map<String,IZenSymbol> symbolMap) {

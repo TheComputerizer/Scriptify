@@ -1,4 +1,4 @@
-package mods.thecomputerizer.scriptify.util;
+package mods.thecomputerizer.scriptify.util.iterator;
 
 import mcp.MethodsReturnNonnullByDefault;
 
@@ -9,49 +9,39 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /**
- * Wrappers that bundle generic helper methods for maps that contain Wrapperable instances as keys, values, or both.
- * Automatically returns null for methods with key inputs when the input is null.
- * TODO Implement use cases for this
+ * Wrapper used for bundling generic helper methods with a final Map instance
  */
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class Mapperable<K,V> implements Map<K,V>, Iterable<Map.Entry<K,V>> {
+public class Mappable<K,V> implements Map<K,V>, Iterable<Map.Entry<K,V>> {
 
-    public static <K,V> Mapperable<Wrapperable<K>,Wrapperable<V>> makeBoth(
-            Supplier<Map<Wrapperable<K>,Wrapperable<V>>> supplier) {
-        return new Both<>(supplier.get());
+    public static <K,V> Mappable<K,V> make(Supplier<Map<K,V>> supplier) {
+        return new Mappable<>(supplier.get(),false);
     }
 
-    public static <K,V> Mapperable<Wrapperable<K>,V> makeKey(
-            Supplier<Map<Wrapperable<K>,V>> supplier) {
-        return new Key<>(supplier.get());
+    public static <K,V> Mappable<K,V> make(Supplier<Map<K,V>> supplier, Consumer<Mappable<K,V>> settings) {
+        Mappable<K,V> mappable = make(supplier);
+        settings.accept(mappable);
+        return mappable;
     }
 
-    public static <K,V> Mapperable<K,Wrapperable<V>> makeValue(Supplier<Map<K,Wrapperable<V>>> supplier) {
-        return new Value<>(supplier.get());
+    public static <K,V> Mappable<K,V> makeSynchronized(Supplier<Map<K,V>> supplier) {
+        return new Mappable<>(supplier.get(),true);
     }
 
-    public static <K,V> Mapperable<Wrapperable<K>,Wrapperable<V>> makeSynchronizedBoth(
-            Supplier<Map<Wrapperable<K>,Wrapperable<V>>> supplier) {
-        return new Both<>(Collections.synchronizedMap(supplier.get()));
-    }
-
-    public static <K,V> Mapperable<Wrapperable<K>,V> makeSynchronizedKey(
-            Supplier<Map<Wrapperable<K>,V>> supplier) {
-        return new Key<>(Collections.synchronizedMap(supplier.get()));
-    }
-
-    public static <K,V> Mapperable<K,Wrapperable<V>> makeSynchronizedValue(
-            Supplier<Map<K,Wrapperable<V>>> supplier) {
-        return new Value<>(Collections.synchronizedMap(supplier.get()));
+    public static <K,V> Mappable<K,V> makeSynchronized(Supplier<Map<K,V>> supplier, Consumer<Mappable<K,V>> settings) {
+        Mappable<K,V> mappable = make(supplier);
+        settings.accept(mappable);
+        return mappable;
     }
 
     private final Map<K,V> map;
 
-    private Mapperable(Map<K,V> map) {
-        this.map = map;
+    public Mappable(Map<K,V> map, boolean isSynchronized) {
+        this.map = isSynchronized ? Collections.synchronizedMap(map) : map;
     }
 
     @Override
@@ -93,8 +83,28 @@ public class Mapperable<K,V> implements Map<K,V>, Iterable<Map.Entry<K,V>> {
     }
 
     @Override
+    public void forEach(Consumer<? super Entry<K,V>> action) {
+        entrySet().forEach(action);
+    }
+
+    public void forEachKey(Consumer<? super K> action) {
+        keySet().forEach(action);
+    }
+
+    public void forEachValue(Consumer<? super V> action) {
+        values().forEach(action);
+    }
+
+    @Override
     public @Nullable V get(@Nullable Object key) {
         return Objects.nonNull(key) ? this.map.get(key) : null;
+    }
+
+    public K getKeyOrDefault(Function<V,Boolean> matcher, K defVal) {
+        for(Map.Entry<K,V> entry : this)
+            if(matcher.apply(entry.getValue()))
+                return entry.getKey();
+        return defVal;
     }
 
     @Override
@@ -107,8 +117,21 @@ public class Mapperable<K,V> implements Map<K,V>, Iterable<Map.Entry<K,V>> {
     }
 
     @Override
+    public Iterator<Entry<K,V>> iterator() {
+        return entrySet().iterator();
+    }
+
+    public boolean keyAbsent(@Nullable Object key) {
+        return Objects.isNull(key) || !containsKey(key);
+    }
+
+    @Override
     public Set<K> keySet() {
         return this.map.keySet();
+    }
+
+    public Stream<Map.Entry<K,V>> parallelStream() {
+        return entrySet().parallelStream();
     }
 
     @Override
@@ -138,45 +161,21 @@ public class Mapperable<K,V> implements Map<K,V>, Iterable<Map.Entry<K,V>> {
     }
 
     @Override
-    public Collection<V> values() {
-        return this.map.values();
-    }
-
-    @Override
-    public Iterator<Entry<K,V>> iterator() {
-        return entrySet().iterator();
-    }
-
-    @Override
-    public void forEach(Consumer<? super Entry<K,V>> action) {
-        entrySet().forEach(action);
-    }
-
-    @Override
     public Spliterator<Entry<K,V>> spliterator() {
         return entrySet().spliterator();
     }
 
-    public static class Both<K,V> extends Mapperable<Wrapperable<K>,Wrapperable<V>> {
-
-        private Both(Map<Wrapperable<K>,Wrapperable<V>> map) {
-            super(map);
-        }
+    public Stream<Map.Entry<K,V>> stream() {
+        return entrySet().stream();
     }
 
-    public static class Key<K,V> extends Mapperable<Wrapperable<K>,V> {
-
-        private Key(Map<Wrapperable<K>, V> map) {
-            super(map);
-        }
+    @Override
+    public String toString() {
+        return this.map.toString();
     }
 
-
-
-    public static class Value<K,V> extends Mapperable<K,Wrapperable<V>> {
-
-        private Value(Map<K,Wrapperable<V>> map) {
-            super(map);
-        }
+    @Override
+    public Collection<V> values() {
+        return this.map.values();
     }
 }

@@ -2,7 +2,7 @@ package mods.thecomputerizer.scriptify.io.write;
 
 import lombok.Getter;
 import lombok.Setter;
-import mods.thecomputerizer.scriptify.util.Wrapperable;
+import mods.thecomputerizer.scriptify.util.iterator.Wrapperable;
 import mods.thecomputerizer.scriptify.util.Misc;
 
 import java.util.ArrayList;
@@ -71,8 +71,8 @@ public class ClampedWriter extends FileWriter {
     }
 
     @Override
-    public Object getValue() {
-        return this.writers.getAsList().stream().map(FileWriter::getValue).collect(Collectors.toList());
+    protected Object getValueInner() {
+        return this.writers.getAsList().stream().map(FileWriter::getValueInner).collect(Collectors.toList());
     }
 
     @Override

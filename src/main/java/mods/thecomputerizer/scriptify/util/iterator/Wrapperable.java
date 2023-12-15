@@ -1,16 +1,14 @@
-package mods.thecomputerizer.scriptify.util;
+package mods.thecomputerizer.scriptify.util.iterator;
 
 import mcp.MethodsReturnNonnullByDefault;
 import mods.thecomputerizer.scriptify.Scriptify;
+import mods.thecomputerizer.scriptify.util.Misc;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Array;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -90,7 +88,11 @@ public class Wrapperable<E> implements Iterable<E> {
     private final Iterable<E> iterable;
 
     public Wrapperable(Iterable<E> iterable, boolean isSynchronized) {
-        this.iterable = iterable;
+        if(isSynchronized) {
+            if(iterable instanceof Collection<?>) iterable = Collections.synchronizedCollection((Collection<E>)iterable);
+            else throw new UnsupportedOperationException("Cannot make synchronized instance of non collection iterable!");
+        }
+        this.iterable = fixInstance(iterable);
     }
 
     public void add(E element) {
@@ -124,10 +126,59 @@ public class Wrapperable<E> implements Iterable<E> {
         }
     }
 
+    public void addAll(Iterable<E> other) {
+        if(this.iterable instanceof Collection<?>) {
+            Collection<E> c = (Collection<E>)this.iterable;
+            if(other instanceof Wrapperable<?>) {
+                c.addAll(((Wrapperable<E>)other).get());
+                return;
+            }
+            if(other instanceof Collection<?>) {
+                c.addAll((Collection<E>)other);
+                return;
+            }
+        }
+        for(E element : other) add(element);
+    }
+
     public void clear() {
         if(this.iterable instanceof Collection<?>)
             ((Collection<E>)this.iterable).clear();
         else throw new UnsupportedOperationException("Cannot clear non collection iterable!");
+    }
+
+    public Wrapperable<E> copyNotMatching(Supplier<Wrapperable<E>> supplier, Function<E,Boolean> matcher) {
+        Wrapperable<E> w = supplier.get();
+        for(E element : this)
+            if(matcher.apply(element)) w.add(element);
+        return w;
+    }
+
+    /**
+     * Handles checking the instance of iterators that may be wrappable or mappable instances
+     * This is done so the instanceof Collection checks do not fail when they should not
+     */
+    protected Iterable<E> fixInstance(Iterable<E> itr) {
+        if(itr instanceof Mappable<?,?>) {
+            Scriptify.logWarn(getClass(),"mappable");
+            return (Iterable<E>)((Mappable<?,?>)itr).entrySet();
+        }
+        if(itr instanceof Wrapperable<?>) return fixInstanceInner((Wrapperable<E>)itr);
+        return itr;
+    }
+
+    /**
+     * Recursive version of fixInstance
+     */
+    private Iterable<E> fixInstanceInner(Wrapperable<E> parent) {
+        Iterable<E> next = parent.iterable;
+        if(next instanceof Wrapperable<?>) return fixInstanceInner((Wrapperable<E>)next);
+        return next;
+    }
+
+    @Override
+    public void forEach(Consumer<? super E> action) {
+        this.iterable.forEach(action);
     }
 
     public Collection<E> get() {
@@ -233,6 +284,20 @@ public class Wrapperable<E> implements Iterable<E> {
         return element;
     }
 
+    public void insertMatching(Collection<E> output, Function<E,Boolean> matcher) {
+        forEach(val -> {
+            if(matcher.apply(val)) output.add(val);
+        });
+    }
+
+    public <C extends Collection<E>> C insertMatching(Supplier<C> outputSupplier, Function<E,Boolean> matcher) {
+        C output = outputSupplier.get();
+        forEach(val -> {
+            if(matcher.apply(val)) output.add(val);
+        });
+        return output;
+    }
+
     public boolean isEmpty() {
         return this.iterable instanceof Collection<?> ? ((Collection<E>)this.iterable).isEmpty() : size()==0;
     }
@@ -253,8 +318,75 @@ public class Wrapperable<E> implements Iterable<E> {
         return !isList() && !isSet();
     }
 
+    @Override
+    public Iterator<E> iterator() {
+        return this.iterable.iterator();
+    }
+
+    public <M> Wrapperable<M> map(Supplier<Wrapperable<M>> supplier, Function<E,M> mapper) {
+        Wrapperable<M> wrapperable = supplier.get();
+        forEach(e -> wrapperable.add(mapper.apply(e)));
+        return wrapperable;
+    }
+
+    public <M> void mapTo(Wrapperable<M> w, Function<E,M> mapper, boolean clearExisting, boolean removeNulls) {
+        if(clearExisting) w.clear();
+        forEach(e -> {
+            M mapped = mapper.apply(e);
+            if(Objects.nonNull(mapped)) w.add(mapped);
+        });
+    }
+
+    public <M> void mapTo(Collection<M> c, Function<E,M> mapper, boolean clearExisting, boolean removeNulls) {
+        if(clearExisting) c.clear();
+        forEach(e -> {
+            M mapped = mapper.apply(e);
+            if(Objects.nonNull(mapped)) c.add(mapped);
+        });
+    }
+
+    public <M,C extends Collection<M>> C mapTo(Supplier<C> supplier, Function<E,M> mapper, boolean removeNulls) {
+        C c = supplier.get();
+        mapTo(c,mapper,false,removeNulls);
+        return c;
+    }
+
+    public Stream<E> parallelStream() {
+        if(this.iterable instanceof Collection<?>) return ((Collection<E>)this.iterable).parallelStream();
+        return StreamSupport.stream(spliterator(),true);
+    }
+
     public void remove(E element) {
         if(this.iterable instanceof Collection<?>) ((Collection<E>)this.iterable).remove(element);
+    }
+
+    public boolean removeIf(Predicate<? super E> filter) {
+        if(this.iterable instanceof Collection<?>) return ((Collection<E>)this.iterable).removeIf(filter);
+        Objects.requireNonNull(filter);
+        boolean removed = false;
+        final Iterator<E> itr = iterator();
+        while(itr.hasNext()) {
+            if(filter.test(itr.next())) {
+                itr.remove();
+                removed = true;
+            }
+        }
+        return removed;
+    }
+
+    public void removeAll(Iterable<E> other) {
+        if(this.iterable instanceof Collection<?>) {
+            Collection<E> c = (Collection<E>)this.iterable;
+            if(other instanceof Wrapperable<?>) {
+                c.removeAll(((Wrapperable<E>)other).get());
+                return;
+            }
+            if(other instanceof Collection<?>) {
+                c.removeAll((Collection<E>)other);
+                return;
+            }
+        }
+        for(E element : other) remove(element);
     }
 
     /**
@@ -308,14 +440,14 @@ public class Wrapperable<E> implements Iterable<E> {
         return sizeCounter.getValue();
     }
 
+    @Override
+    public Spliterator<E> spliterator() {
+        return this.iterable.spliterator();
+    }
+
     public Stream<E> stream() {
         if(this.iterable instanceof Collection<?>) return ((Collection<E>)this.iterable).stream();
         return StreamSupport.stream(spliterator(), false);
-    }
-
-    public Stream<E> parallelStream() {
-        if(this.iterable instanceof Collection<?>) return ((Collection<E>)this.iterable).parallelStream();
-        return StreamSupport.stream(spliterator(),true);
     }
 
     public E[] toArray() {
@@ -323,17 +455,7 @@ public class Wrapperable<E> implements Iterable<E> {
     }
 
     @Override
-    public void forEach(Consumer<? super E> action) {
-        this.iterable.forEach(action);
-    }
-
-    @Override
-    public Iterator<E> iterator() {
-        return this.iterable.iterator();
-    }
-
-    @Override
-    public Spliterator<E> spliterator() {
-        return this.iterable.spliterator();
+    public String toString() {
+        return this.iterable.toString();
     }
 }

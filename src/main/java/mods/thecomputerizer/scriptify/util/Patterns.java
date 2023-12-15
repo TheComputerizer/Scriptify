@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 public class Patterns {
     public static final Pattern AMOUNT = Pattern.compile(">\\*(-?[0-9]]+)");
-    public static final Pattern ARRAY_DEF = Pattern.compile("\\[([\\[\\]]*)]");
+    public static final Pattern ARRAY_DEF = Pattern.compile("(\\[*]*)");
     public static final Pattern BEP = Pattern.compile("<([a-z0-9_\\-:]+)>",Pattern.CASE_INSENSITIVE);
     public static final Pattern PARAMETER = Pattern.compile("([a-z0-9_\\-:\\[\\]]+)=([a-z0-9_\\-:\\[\\]]+)",Pattern.CASE_INSENSITIVE);
 
@@ -25,7 +25,7 @@ public class Patterns {
         return matchesAny(original,false, Arrays.asList(matches));
     }
 
-    public static boolean matchesAny(String original, Collection<String> matches) {
+    public static boolean matchesAny(String original, Iterable<String> matches) {
         return matchesAny(original,false,matches);
     }
 
@@ -33,7 +33,7 @@ public class Patterns {
         return matchesAny(original,matchCase,Arrays.asList(matches));
     }
 
-    public static boolean matchesAny(String original, boolean matchCase, Collection<String> matches) {
+    public static boolean matchesAny(String original, boolean matchCase, Iterable<String> matches) {
         if(StringUtils.isBlank(original)) return true;
         original = matchCase ? original : original.toLowerCase();
         for(String match : matches) {

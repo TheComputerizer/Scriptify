@@ -12,7 +12,7 @@ import mods.thecomputerizer.scriptify.io.data.ExpressionCallHolder;
 import mods.thecomputerizer.scriptify.io.data.ExpressionCastHolder;
 import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
 import mods.thecomputerizer.scriptify.mixin.access.*;
-import mods.thecomputerizer.scriptify.util.Wrapperable;
+import mods.thecomputerizer.scriptify.util.iterator.Wrapperable;
 import mods.thecomputerizer.scriptify.util.Misc;
 import mods.thecomputerizer.theimpossiblelibrary.util.GenericUtils;
 import net.minecraft.nbt.*;
@@ -128,13 +128,13 @@ public class ExpressionWriter extends FileWriter {
             if(Objects.isNull(writer)) return IOUtils.getClassFromAlias("null");
             String argType = writer instanceof ExpressionWriter ?
                     IOUtils.getBaseTypeName(((ExpressionWriter)writer).expression.getType()) :
-                    Objects.nonNull(writer.getValue()) ? writer.getValue().getClass().getName() : "null";
+                    Objects.nonNull(writer.getValueInner()) ? writer.getValueInner().getClass().getName() : "null";
             return IOUtils.getClassFromAlias(argType);
         });
         Method method = Misc.getMethod(IOUtils.getClassFromAlias(IOUtils.getBaseTypeName(type)),methodName,argClasses);
         if(Objects.nonNull(method)) {
             Object[] argValues = new Object[writers.size()];
-            Misc.supplyArray(argValues,i -> writers.get(i).getValue());
+            Misc.supplyArray(argValues,i -> writers.get(i).getValueInner());
             return Misc.invokeMethod(method,invoker,argValues);
         }
         return null;
@@ -291,14 +291,14 @@ public class ExpressionWriter extends FileWriter {
             ExpressionCallHolder holder = (ExpressionCallHolder)this.expression;
             ExpressionWriter invoker = new ExpressionWriter(holder.getReceiver());
             invoker.setDisableStringQuotes(true);
-            return evaluate(invoker.getValue(),holder.getType(),holder.getMethodName(),writer.writers.getAsList());
+            return evaluate(invoker.getValueInner(),holder.getType(),holder.getMethodName(),writer.writers.getAsList());
         }
         if(this.expression instanceof ExpressionArray)
-            return Misc.getFixedObject(((List<Object>)writer.getValue()).toArray(new Object[0]));
+            return ((List<Object>)writer.getValueInner()).toArray(new Object[0]);
         if(this.expression instanceof ExpressionMap) {
             Map<Object,Object> map = new HashMap<>();
             for(FileWriter entryWriter : writer.getWriters()) {
-                List<Object> entryPair = (List<Object>)entryWriter.getValue();
+                List<Object> entryPair = (List<Object>)entryWriter.getValueInner();
                 map.putIfAbsent(entryPair.get(0),entryPair.get(1));
             }
             return map;
@@ -306,27 +306,20 @@ public class ExpressionWriter extends FileWriter {
         if(this.expression instanceof ExpressionCastHolder) {
             ExpressionCastHolder holder = (ExpressionCastHolder)this.expression;
             Class<?> castTo = IOUtils.getClassFromAlias(IOUtils.getBaseTypeName(holder.getType()));
-            Object value = new ExpressionWriter(holder.getExpression()).getValue();
+            Object value = new ExpressionWriter(holder.getExpression()).getValueInner();
             return IData.class.isAssignableFrom(castTo) && value instanceof Map<?,?> ?
                     castToIData(value) : castTo.cast(value);
         }
-        return writer.getValue();
+        return writer.getValueInner();
     }
 
-    private Object getExpressionValue(ExpressionWriter writer) {
-        if(writer.getExpression() instanceof ExpressionArray) {
-
-        }
-        return null;
-    }
-
-    public Object getValue() {
+    protected Object getValueInner() {
         if(Objects.isNull(this.cachedSubWriter)) cache();
         if(this.cachedSubWriter instanceof ClampedWriter)
-            return Misc.getFixedObject(getClampedValue((ClampedWriter)this.cachedSubWriter));
+            return getClampedValue((ClampedWriter)this.cachedSubWriter);
         //if(this.cachedSubWriter instanceof ExpressionWriter)
             //return getExpressionValue((ExpressionWriter)this.cachedSubWriter);
-        return this.cachedSubWriter.getValue();
+        return this.cachedSubWriter.getValueInner();
     }
 
     private ClampedWriter getVirtualWriter(ExpressionCallVirtual virtual) {

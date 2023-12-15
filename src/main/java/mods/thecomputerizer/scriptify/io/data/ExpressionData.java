@@ -5,11 +5,12 @@ import mods.thecomputerizer.scriptify.io.read.ExpressionReader;
 import mods.thecomputerizer.scriptify.io.write.ClampedWriter;
 import mods.thecomputerizer.scriptify.io.write.ExpressionWriter;
 import mods.thecomputerizer.scriptify.io.write.FileWriter;
-import mods.thecomputerizer.scriptify.util.Wrapperable;
+import mods.thecomputerizer.scriptify.util.iterator.Wrapperable;
 import mods.thecomputerizer.scriptify.util.Misc;
 import stanhebben.zenscript.compiler.IEnvironmentGlobal;
 import stanhebben.zenscript.parser.expression.ParsedExpression;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -45,6 +46,11 @@ public class ExpressionData {
         for(ParsedExpression expression : expressions)
             readers.add(new ExpressionReader(expression,this.environment));
         return readers;
+    }
+
+    public @Nullable Class<?> getExpectedClassAt(int index) {
+        DynamicArray parameter = this.blueprint.getParameterAt(index);
+        return Objects.nonNull(parameter) ? parameter.getTypeClass() : null;
     }
 
     public FileWriter makeFileWriter() {

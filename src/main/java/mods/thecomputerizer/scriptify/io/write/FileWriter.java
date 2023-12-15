@@ -2,7 +2,8 @@ package mods.thecomputerizer.scriptify.io.write;
 
 import lombok.Getter;
 import lombok.Setter;
-import mods.thecomputerizer.scriptify.util.Wrapperable;
+import mods.thecomputerizer.scriptify.util.Misc;
+import mods.thecomputerizer.scriptify.util.iterator.Wrapperable;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 
@@ -36,7 +37,11 @@ public abstract class FileWriter {
 
     public void collectPreprocessors(Wrapperable<String> preprocessors) {}
 
-    public abstract Object getValue();
+    public final Object getValue(Class<?> getAs) {
+        return Misc.getFixedObject(getValueInner(),getAs);
+    }
+
+    protected abstract Object getValueInner();
 
     @Override
     public String toString() {
