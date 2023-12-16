@@ -71,6 +71,7 @@ public class IOUtils {
     }
 
     public static String getBaseTypeName(ZenType type) {
+        if(Objects.isNull(type)) return "null";
         String name = type.getName();
         if(type instanceof ZenTypeFunction) name = ((ZenTypeFunction)type).getReturnType().getName();
         return name.replaceFirst("ZenTypeNative: ", "");
