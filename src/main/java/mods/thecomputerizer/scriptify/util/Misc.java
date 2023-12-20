@@ -7,19 +7,26 @@ import mods.thecomputerizer.scriptify.config.ScriptifyConfigHelper;
 import mods.thecomputerizer.scriptify.io.IOUtils;
 import mods.thecomputerizer.scriptify.io.data.BEP;
 import mods.thecomputerizer.scriptify.io.data.DynamicArray;
+import mods.thecomputerizer.theimpossiblelibrary.Constants;
 import mods.thecomputerizer.theimpossiblelibrary.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Uncategorized util methods
@@ -145,9 +152,14 @@ public class Misc {
      * point to single files are still added file paths that don't exist are automatically removed
      */
     public static List<String> expandFilePaths(@Nullable List<String> filePaths) {
-        List<String> files = new ArrayList<>();
+        Set<String> files = new HashSet<>();
         if(Objects.nonNull(filePaths)) {
             for(String filePath : filePaths) {
+                try(Stream<Path> paths = Files.walk(Paths.get(filePath))) {
+                    files.addAll(paths.filter(Files::isRegularFile).map(Path::toString).collect(Collectors.toList()));
+                } catch(IOException ex) {
+                    Scriptify.logError(Misc.class,"files",ex,filePath);
+                }
                 File file = new File(filePath);
                 if(filePath.contains(".")) files.add(filePath);
                 else {
@@ -160,7 +172,7 @@ public class Misc {
             }
         }
         ScriptifyRef.LOGGER.error("RETURNING `{}`",files);
-        return files;
+        return new ArrayList<>(files);
     }
 
     public static List<String> expandFilePaths(String ... filePaths) {
