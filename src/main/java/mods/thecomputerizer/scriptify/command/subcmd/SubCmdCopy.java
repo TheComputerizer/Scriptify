@@ -21,7 +21,7 @@ public class SubCmdCopy extends SubCmd {
     public SubCmdCopy() {
         super(Type.COMMAND_COPY,Type.PARAMETER_CLASS_NAMES,Type.PARAMETER_ENHANCEMENTS,Type.PARAMETER_METHOD_NAMES,
                 Type.PARAMETER_PARAMETERS,Type.PARAMETER_SAVE_PARAMETERS,Type.PARAMETER_SORT_BY,
-                Type.PARAMETER_ZEN_FILE_INPUTS,Type.PARAMETER_ZEN_FILE_OUTPUTS);
+                Type.PARAMETER_TYPE,Type.PARAMETER_ZEN_FILE_INPUTS,Type.PARAMETER_ZEN_FILE_OUTPUTS);
     }
 
     private Map<String,List<ExpressionData>> applySort(Map<ZenFileReader,List<ExpressionData>> dataMap, String sortBy) {

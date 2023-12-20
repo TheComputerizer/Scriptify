@@ -145,18 +145,25 @@ public class Misc {
      * point to single files are still added file paths that don't exist are automatically removed
      */
     public static List<String> expandFilePaths(@Nullable List<String> filePaths) {
+        ScriptifyRef.LOGGER.error("EXPANDING PATHS `{}`",filePaths);
         List<String> files = new ArrayList<>();
         if(Objects.nonNull(filePaths)) {
             for(String filePath : filePaths) {
+                ScriptifyRef.LOGGER.error("EXPANDING PATH `{}`",filePath);
                 File file = new File(filePath);
-                if(file.exists()) {
-                    if(file.isDirectory()) {
-                        String[] nextFiles = file.list();
-                        if(Objects.nonNull(nextFiles)) files.addAll(expandFilePaths(nextFiles));
-                    } else files.add(filePath);
+                if(filePath.contains(".")) files.add(filePath);
+                else {
+                    ScriptifyRef.LOGGER.error("CHECKING FOR DIR `{}`",filePath);
+                    String[] nextFiles = file.list();
+                    if(Objects.nonNull(nextFiles)){
+                        ScriptifyRef.LOGGER.error("YE");
+                        for(String appendedPath : expandFilePaths(nextFiles))
+                            files.add(filePath+"/"+appendedPath);
+                    }
                 }
             }
         }
+        ScriptifyRef.LOGGER.error("RETURNING `{}`",files);
         return files;
     }
 
